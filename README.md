@@ -5,6 +5,23 @@ A liquid-glass reminders app for Android. The interface is the HTML/CSS/JS desig
 real, installable app — system alarms, notification-tray alerts, and persistence across
 reboots.
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/01-today.png" width="228" alt="Today">
+  <img src="docs/screenshots/03-upcoming.png" width="228" alt="Upcoming">
+  <img src="docs/screenshots/04-add-sheet.png" width="228" alt="New reminder">
+</p>
+<p align="center">
+  <img src="docs/screenshots/02-today-dark.png" width="228" alt="Today, dark">
+  <img src="docs/screenshots/05-done.png" width="228" alt="Done">
+  <img src="docs/screenshots/06-add-sheet-dark.png" width="228" alt="New reminder, dark">
+</p>
+
+Captured from the app itself at 390×844 @2x — the same `assets/index.html` that ships inside the
+APK, with sample data. The red timestamp on "Pick up dry cleaning" is the overdue state, and the
+"3" badge on the Today tab counts what is still due today.
+
 ## Download
 
 Grab `Reminders.apk` from the [latest release](../../releases/latest) and sideload it.
