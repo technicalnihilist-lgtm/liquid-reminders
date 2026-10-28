@@ -1,8 +1,12 @@
-<p align="center">
-  <img src="docs/icon.png" width="110" alt="Reminders icon">
-</p>
-
 # Reminders
+
+<p align="center">
+  <a href="../../releases/latest"><img src="https://img.shields.io/github/v/release/technicalnihilist-lgtm/liquid-reminders" alt="Latest release"></a>
+  <img src="https://img.shields.io/badge/licence-MIT-blue" alt="MIT licence">
+  <img src="https://img.shields.io/badge/platform-Android%207.0%2B-3ddc84" alt="Android 7.0+">
+  <img src="https://img.shields.io/badge/APK-38%20KB-lightgrey" alt="APK size">
+  <img src="https://img.shields.io/badge/dependencies-none-brightgreen" alt="No dependencies">
+</p>
 
 A liquid-glass reminders app for Android. The interface is the HTML/CSS/JS design in
 `assets/index.html`; everything underneath it is a native Android shell that turns it into a
@@ -90,3 +94,14 @@ Replace it with your own key before publishing anywhere real.
   would refuse exact scheduling.
 - Data lives only on the device. Nothing is uploaded and the app requests no internet
   permission.
+
+## Contributing
+
+Issues and pull requests are welcome. The whole app is a few hundred lines — `assets/index.html`
+is the interface, and four Java files hold the rest. See [CONTRIBUTING.md](CONTRIBUTING.md) for the
+layout and how to build it. Keep the front end a single self-contained file; there is no bundler
+and no third-party dependency, and that is deliberate.
+
+## Licence
+
+[MIT](LICENSE) — use it, fork it, ship it, just keep the copyright notice.
