@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/icon.png" width="110" alt="Reminders icon">
+</p>
+
 # Reminders
 
 A liquid-glass reminders app for Android. The interface is the HTML/CSS/JS design in
