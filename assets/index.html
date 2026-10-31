@@ -254,7 +254,7 @@ body{padding-top:var(--sat,env(safe-area-inset-top,0px))!important;padding-botto
 .item.press{
   transition-duration:.13s;
   transition-timing-function:cubic-bezier(.25,.9,.3,1);
-  transform:translateZ(38px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) scale(1.035);
+  transform:translateZ(calc(38px * var(--d))) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) scale(1.035);
   box-shadow:0 30px 52px rgba(30,20,90,.32),
              inset 0 1.5px 0 rgba(255,255,255,.95),
              inset 0 0 26px rgba(255,255,255,.28);
@@ -262,19 +262,19 @@ body{padding-top:var(--sat,env(safe-area-inset-top,0px))!important;padding-botto
   z-index:3;
 }
 @keyframes depthBounce{
-  0%  {transform:translateZ(38px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) scale(1.035)}
-  34% {transform:translateZ(-10px) rotateX(calc(var(--rx,0deg) * -.45)) rotateY(calc(var(--ry,0deg) * -.45)) scale(.978)}
-  58% {transform:translateZ(17px) rotateX(calc(var(--rx,0deg) * .3)) rotateY(calc(var(--ry,0deg) * .3)) scale(1.014)}
-  78% {transform:translateZ(-4px) rotateX(calc(var(--rx,0deg) * -.12)) rotateY(calc(var(--ry,0deg) * -.12)) scale(.996)}
+  0%  {transform:translateZ(calc(38px * var(--d))) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) scale(1.035)}
+  34% {transform:translateZ(calc(-10px * var(--d))) rotateX(calc(var(--rx,0deg) * -.45)) rotateY(calc(var(--ry,0deg) * -.45)) scale(.978)}
+  58% {transform:translateZ(calc(17px * var(--d))) rotateX(calc(var(--rx,0deg) * .3)) rotateY(calc(var(--ry,0deg) * .3)) scale(1.014)}
+  78% {transform:translateZ(calc(-4px * var(--d))) rotateX(calc(var(--rx,0deg) * -.12)) rotateY(calc(var(--ry,0deg) * -.12)) scale(.996)}
   100%{transform:translateZ(0) rotateX(0deg) rotateY(0deg) scale(1)}
 }
 .item.bounce{animation:depthBounce .68s cubic-bezier(.3,.85,.3,1) both}
 
 /* cards fly in from depth, one after another */
 @keyframes cascadeIn{
-  0%  {opacity:0;transform:translateZ(-130px) translateY(16px) rotateX(7deg) scale(.93)}
-  55% {opacity:1;transform:translateZ(22px) translateY(-3px) rotateX(-1.4deg) scale(1.012)}
-  78% {transform:translateZ(-6px) translateY(1px) rotateX(.5deg) scale(.998)}
+  0%  {opacity:0;transform:translateZ(calc(-130px * var(--d))) translateY(16px) rotateX(7deg) scale(.93)}
+  55% {opacity:1;transform:translateZ(calc(22px * var(--d))) translateY(-3px) rotateX(-1.4deg) scale(1.012)}
+  78% {transform:translateZ(calc(-6px * var(--d))) translateY(1px) rotateX(.5deg) scale(.998)}
   100%{opacity:1;transform:translateZ(0) translateY(0) rotateX(0) scale(1)}
 }
 .item.cascade{animation:cascadeIn .62s cubic-bezier(.22,1.1,.32,1) both}
@@ -292,12 +292,12 @@ body{padding-top:var(--sat,env(safe-area-inset-top,0px))!important;padding-botto
 .dock{perspective:800px}
 .fab{transform:translateZ(0) scale(1);
   transition:transform .5s cubic-bezier(.16,1.5,.3,1),box-shadow .5s cubic-bezier(.16,1.5,.3,1)}
-.fab.press{transform:translateZ(-26px) scale(.9);transition-duration:.12s}
+.fab.press{transform:translateZ(calc(-26px * var(--d))) scale(.9);transition-duration:.12s}
 @keyframes fabBounce{
-  0%  {transform:translateZ(-26px) scale(.9)}
-  40% {transform:translateZ(34px) scale(1.13)}
-  64% {transform:translateZ(-7px) scale(.97)}
-  84% {transform:translateZ(9px) scale(1.02)}
+  0%  {transform:translateZ(calc(-26px * var(--d))) scale(.9)}
+  40% {transform:translateZ(calc(34px * var(--d))) scale(1.13)}
+  64% {transform:translateZ(calc(-7px * var(--d))) scale(.97)}
+  84% {transform:translateZ(calc(9px * var(--d))) scale(1.02)}
   100%{transform:translateZ(0) scale(1)}
 }
 .fab.bounce{animation:fabBounce .62s cubic-bezier(.3,.9,.3,1) both}
@@ -306,8 +306,8 @@ body{padding-top:var(--sat,env(safe-area-inset-top,0px))!important;padding-botto
 .tabs{perspective:900px}
 @keyframes lensBounce{
   0%  {transform:translateX(calc(var(--p) * 100%)) scale3d(1,1,1) translateZ(0)}
-  42% {transform:translateX(calc(var(--p) * 100%)) scale3d(1.07,1.24,1) translateZ(28px)}
-  70% {transform:translateX(calc(var(--p) * 100%)) scale3d(.97,.92,1) translateZ(-7px)}
+  42% {transform:translateX(calc(var(--p) * 100%)) scale3d(1.07,1.24,1) translateZ(calc(28px * var(--d)))}
+  70% {transform:translateX(calc(var(--p) * 100%)) scale3d(.97,.92,1) translateZ(calc(-7px * var(--d)))}
   100%{transform:translateX(calc(var(--p) * 100%)) scale3d(1,1,1) translateZ(0)}
 }
 .lens.bounce{animation:lensBounce .58s cubic-bezier(.3,.9,.3,1) both}
@@ -329,6 +329,67 @@ body{padding-top:var(--sat,env(safe-area-inset-top,0px))!important;padding-botto
   .fab{transition:none}
   .sheet,.toast{transition:transform .18s linear}
 }
+
+/* ============================================================
+   parallax + adjustable depth
+   --px / --py are driven by the pointer or the device tilt,
+   --d scales depth, --par scales parallax, --tilt gates the 3D.
+   ============================================================ */
+:root{--d:1;--par:.7;--tilt:1;--px:0;--py:0}
+
+.app{perspective:1200px}
+.pages{
+  transform-origin:50% 42%;
+  transform:rotateX(calc(var(--py) * -1.4deg * var(--tilt) * var(--par)))
+            rotateY(calc(var(--px) * 1.8deg * var(--tilt) * var(--par)));
+}
+.bg{
+  translate:calc(var(--px) * -20px * var(--par)) calc(var(--py) * -16px * var(--par));
+  scale:1.08;
+}
+header{translate:calc(var(--px) * 4px * var(--par)) calc(var(--py) * 3px * var(--par))}
+.item{
+  translate:calc(var(--px) * 6px * var(--par) * var(--ly,1))
+            calc(var(--py) * 4px * var(--par) * var(--ly,1));
+}
+.page .item:nth-child(1){--ly:1}
+.page .item:nth-child(2){--ly:1.15}
+.page .item:nth-child(3){--ly:1.3}
+.page .item:nth-child(4){--ly:1.45}
+.page .item:nth-child(5){--ly:1.6}
+.page .item:nth-child(n+6){--ly:1.75}
+
+/* gear button */
+header{position:relative}
+.gear{position:absolute;top:12px;right:18px;width:44px;height:44px;border-radius:50%;
+  display:grid;place-items:center;color:var(--ink);padding:0}
+.gear svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;
+  stroke-linecap:round;stroke-linejoin:round}
+.gear:active{transform:scale(.92)}
+
+/* settings controls */
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin:14px 2px 0;font-weight:800;font-size:16px}
+.set-row output{color:var(--ink2);font-weight:800;font-variant-numeric:tabular-nums}
+.range{-webkit-appearance:none;appearance:none;width:100%;height:6px;margin:10px 0 4px;
+  border-radius:99px;background:rgba(255,255,255,.34);outline:none;border:0}
+.range::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;
+  background:#fff;border:2px solid rgba(255,255,255,.95);cursor:pointer;
+  box-shadow:0 2px 9px rgba(30,20,90,.38),inset 0 -1px 2px rgba(0,0,0,.12)}
+.range::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:#fff;border:0;
+  box-shadow:0 2px 9px rgba(30,20,90,.38)}
+.switch{width:56px;height:32px;border-radius:999px;background:rgba(120,120,140,.38);
+  border:1px solid var(--edge);position:relative;padding:0;flex:none;transition:background .25s}
+.switch i{position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;
+  box-shadow:0 2px 6px rgba(0,0,0,.25);transition:transform .32s cubic-bezier(.2,1.4,.3,1)}
+.switch.on{background:var(--accent)}
+.switch.on i{transform:translateX(24px)}
+.hint{margin:14px 2px 0;font-size:13.5px;font-weight:600;color:var(--ink2);line-height:1.4}
+
+@media (prefers-reduced-motion:reduce){
+  .bg,header,.item{translate:none}
+  .pages{transform:none}
+}
 </style>
 </head>
 <body>
@@ -341,7 +402,7 @@ body{padding-top:var(--sat,env(safe-area-inset-top,0px))!important;padding-botto
 <div class="bg"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div></div>
 
 <div class="app">
-  <header><h1 id="title">Today</h1><p id="sub"></p></header>
+  <header><h1 id="title">Today</h1><p id="sub"></p><button class="gear glass" id="gear" aria-label="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1-1.56V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9a1.7 1.7 0 0 0 1.56 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z"/></svg></button></header>
   <main class="pages" id="pages">
     <section class="page" id="p0"></section>
     <section class="page" id="p1"></section>
@@ -369,6 +430,22 @@ body{padding-top:var(--sat,env(safe-area-inset-top,0px))!important;padding-botto
   <input class="field" id="f-due" type="datetime-local" aria-label="Date and time">
   <div class="row"><span style="font-weight:700">Color</span><div class="dots" id="dots"></div></div>
   <div class="btns"><button type="button" class="btn sec" id="cancel">Cancel</button><button type="button" class="btn pri" id="save" disabled>Add reminder</button></div>
+</form>
+
+
+<form class="sheet glass" id="settings" onsubmit="return false">
+  <h2>Settings</h2>
+  <div class="set-row"><label for="s-depth">Depth</label><output id="o-depth">100%</output></div>
+  <input class="range" id="s-depth" type="range" min="0" max="150" step="5" value="100" aria-label="Depth">
+  <div class="set-row"><label for="s-par">Parallax</label><output id="o-par">70%</output></div>
+  <input class="range" id="s-par" type="range" min="0" max="150" step="5" value="70" aria-label="Parallax">
+  <div class="set-row"><span>Tilt with device</span>
+    <button type="button" class="switch on" id="s-tilt" role="switch" aria-checked="true" aria-label="Tilt with device"><i></i></button>
+  </div>
+  <p class="hint">Depth sets how far cards lift toward you. Parallax sets how much the background
+  and cards shift as you move or tilt the phone.</p>
+  <div class="btns"><button type="button" class="btn sec" id="s-reset">Reset</button>
+  <button type="button" class="btn pri" id="s-done">Done</button></div>
 </form>
 
 <div class="toast glass" id="toast" role="status"><b id="t-title"></b><span id="t-sub"></span></div>
@@ -624,6 +701,123 @@ body{padding-top:var(--sat,env(safe-area-inset-top,0px))!important;padding-botto
     }, {passive:true});
     lensEl.addEventListener('animationend', function(){ lensEl.classList.remove('bounce'); });
   }
+})();
+</script>
+
+<script>
+/* ---- parallax engine + settings ---- */
+(function(){
+  var root = document.documentElement;
+  var KEY = 'liquid.settings.v1';
+  var st = { depth: 100, par: 70, tilt: true };
+
+  try{
+    var saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if(saved && typeof saved === 'object'){
+      if(typeof saved.depth === 'number') st.depth = saved.depth;
+      if(typeof saved.par   === 'number') st.par   = saved.par;
+      if(typeof saved.tilt  === 'boolean') st.tilt = saved.tilt;
+    }
+  }catch(e){}
+
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(st)); }catch(e){} }
+
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function apply(){
+    root.style.setProperty('--d', (st.depth / 100).toFixed(2));
+    root.style.setProperty('--par', reduce ? '0' : (st.par / 100).toFixed(2));
+    root.style.setProperty('--tilt', st.tilt && !reduce ? '1' : '0');
+  }
+  apply();
+
+  /* ---- motion source: device tilt if we have it, otherwise the pointer ---- */
+  var tx = 0, ty = 0, cx = 0, cy = 0, running = true, seenOrient = false;
+
+  window.addEventListener('deviceorientation', function(e){
+    if(e.beta == null && e.gamma == null) return;
+    seenOrient = true;
+    var g = Math.max(-45, Math.min(45, e.gamma || 0));
+    var b = Math.max(-45, Math.min(45, (e.beta || 0) - 35));
+    tx = g / 45;
+    ty = b / 45;
+    kick();
+  }, {passive:true});
+
+  document.addEventListener('pointermove', function(e){
+    if(seenOrient) return;
+    tx = (e.clientX / (window.innerWidth || 1) - .5) * 2;
+    ty = (e.clientY / (window.innerHeight || 1) - .5) * 2;
+    kick();
+  }, {passive:true});
+
+  function kick(){
+    if(!running){ running = true; requestAnimationFrame(loop); }
+  }
+
+  function loop(){
+    cx += (tx - cx) * .12;
+    cy += (ty - cy) * .12;
+    var settled = Math.abs(tx - cx) < .0008 && Math.abs(ty - cy) < .0008;
+    if(settled){ cx = tx; cy = ty; }
+    root.style.setProperty('--px', cx.toFixed(4));
+    root.style.setProperty('--py', cy.toFixed(4));
+    if(settled){ running = false; return; }   /* idle: stop burning frames */
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  /* ---- settings sheet ---- */
+  var sheet = document.getElementById('settings');
+  var scrim = document.getElementById('scrim');
+  var gear  = document.getElementById('gear');
+  var depth = document.getElementById('s-depth');
+  var par   = document.getElementById('s-par');
+  var oDepth = document.getElementById('o-depth');
+  var oPar   = document.getElementById('o-par');
+  var tiltBtn = document.getElementById('s-tilt');
+  if(!sheet || !gear) return;
+
+  function paint(){
+    depth.value = st.depth;
+    par.value = st.par;
+    oDepth.textContent = st.depth + '%';
+    oPar.textContent = st.par + '%';
+    tiltBtn.classList.toggle('on', !!st.tilt);
+    tiltBtn.setAttribute('aria-checked', st.tilt ? 'true' : 'false');
+  }
+  paint();
+
+  function open(){
+    var add = document.getElementById('sheet');
+    if(add) add.classList.remove('open');
+    sheet.classList.add('open');
+    scrim.classList.add('open');
+  }
+  function close(){
+    sheet.classList.remove('open');
+    scrim.classList.remove('open');
+  }
+
+  gear.addEventListener('click', open);
+  document.getElementById('s-done').addEventListener('click', close);
+  scrim.addEventListener('click', close);
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') close(); });
+
+  depth.addEventListener('input', function(){
+    st.depth = +depth.value; oDepth.textContent = st.depth + '%'; apply(); save();
+  });
+  par.addEventListener('input', function(){
+    st.par = +par.value; oPar.textContent = st.par + '%'; apply(); save();
+  });
+  tiltBtn.addEventListener('click', function(){
+    st.tilt = !st.tilt; paint(); apply(); save();
+    tx = ty = 0; kick();
+  });
+  document.getElementById('s-reset').addEventListener('click', function(){
+    st = { depth: 100, par: 70, tilt: true };
+    paint(); apply(); save(); tx = ty = 0; kick();
+  });
 })();
 </script>
 </body>
