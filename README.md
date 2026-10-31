@@ -4,7 +4,7 @@
   <a href="../../releases/latest"><img src="https://img.shields.io/github/v/release/technicalnihilist-lgtm/liquid-reminders" alt="Latest release"></a>
   <img src="https://img.shields.io/badge/licence-MIT-blue" alt="MIT licence">
   <img src="https://img.shields.io/badge/platform-Android%207.0%2B-3ddc84" alt="Android 7.0+">
-  <img src="https://img.shields.io/badge/APK-38%20KB-lightgrey" alt="APK size">
+  <img src="https://img.shields.io/badge/APK-50%20KB-lightgrey" alt="APK size">
   <img src="https://img.shields.io/badge/dependencies-none-brightgreen" alt="No dependencies">
 </p>
 
@@ -29,6 +29,30 @@ reboots.
 Captured from the app itself at 390×844 @2x — the same `assets/index.html` that ships inside the
 APK, with sample data. The red timestamp on "Pick up dry cleaning" is the overdue state, and the
 "3" badge on the Today tab counts what is still due today.
+
+## Motion
+
+<p align="center">
+  <img src="docs/bounce.gif" width="300" alt="Press, release and bounce">
+</p>
+
+Cards live in a 3D space. Pressing one lifts it toward the viewer, tilts it toward your finger and
+deepens its shadow; releasing it runs an overshoot spring that dips past rest before settling. The
+same spring drives the rest of the interface:
+
+- **Depth bounce on press** — the card translates 38 px toward the viewer along Z, scales up and
+  tilts up to 8° toward wherever you touched, so the lift has a direction.
+- **Spring settle on release** — a five-stop keyframe that overshoots, undershoots and settles,
+  rather than easing straight back.
+- **4D cascade** — when a list is rebuilt, cards fly in from 130 px behind the screen, staggered
+  38 ms apart, each landing with a small overshoot.
+- **Tab lens** — the glass lens dips into the bar and springs back 1.24x its height each time a
+  tab settles.
+- **Add button** — pushes away from you on touch-down, then springs past rest on release.
+- **Sheet and toast** — arrive from depth with a slight rotateX, so they unfold toward you.
+
+All of it is CSS transforms and one small script — no animation library. Everything is disabled
+under `prefers-reduced-motion: reduce`.
 
 ## Download
 
