@@ -235,6 +235,100 @@ body{padding-top:var(--sat,env(safe-area-inset-top,0px))!important;padding-botto
 .dock{bottom:calc(14px + var(--sab,env(safe-area-inset-bottom,0px)))}
 .sheet{padding-bottom:calc(24px + var(--sab,env(safe-area-inset-bottom,0px)))}
 .page{padding-bottom:calc(190px + var(--sab,0px))}
+
+/* ============================================================
+   depth bounce + 4D press
+   Cards live in a 3D space: pressing lifts them toward the
+   viewer, tilts them toward the finger, then releases through
+   an overshoot spring that settles back to rest.
+   ============================================================ */
+.page{perspective:1000px;perspective-origin:50% 35%}
+
+.item{
+  transform-style:preserve-3d;
+  transform:translateZ(0) rotateX(0deg) rotateY(0deg) scale(1);
+  transition:transform .55s cubic-bezier(.16,1.45,.32,1),
+             box-shadow .55s cubic-bezier(.16,1.45,.32,1),
+             filter .3s ease;
+}
+.item.press{
+  transition-duration:.13s;
+  transition-timing-function:cubic-bezier(.25,.9,.3,1);
+  transform:translateZ(38px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) scale(1.035);
+  box-shadow:0 30px 52px rgba(30,20,90,.32),
+             inset 0 1.5px 0 rgba(255,255,255,.95),
+             inset 0 0 26px rgba(255,255,255,.28);
+  filter:brightness(1.06);
+  z-index:3;
+}
+@keyframes depthBounce{
+  0%  {transform:translateZ(38px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) scale(1.035)}
+  34% {transform:translateZ(-10px) rotateX(calc(var(--rx,0deg) * -.45)) rotateY(calc(var(--ry,0deg) * -.45)) scale(.978)}
+  58% {transform:translateZ(17px) rotateX(calc(var(--rx,0deg) * .3)) rotateY(calc(var(--ry,0deg) * .3)) scale(1.014)}
+  78% {transform:translateZ(-4px) rotateX(calc(var(--rx,0deg) * -.12)) rotateY(calc(var(--ry,0deg) * -.12)) scale(.996)}
+  100%{transform:translateZ(0) rotateX(0deg) rotateY(0deg) scale(1)}
+}
+.item.bounce{animation:depthBounce .68s cubic-bezier(.3,.85,.3,1) both}
+
+/* cards fly in from depth, one after another */
+@keyframes cascadeIn{
+  0%  {opacity:0;transform:translateZ(-130px) translateY(16px) rotateX(7deg) scale(.93)}
+  55% {opacity:1;transform:translateZ(22px) translateY(-3px) rotateX(-1.4deg) scale(1.012)}
+  78% {transform:translateZ(-6px) translateY(1px) rotateX(.5deg) scale(.998)}
+  100%{opacity:1;transform:translateZ(0) translateY(0) rotateX(0) scale(1)}
+}
+.item.cascade{animation:cascadeIn .62s cubic-bezier(.22,1.1,.32,1) both}
+
+/* the tick lands with its own little pop */
+@keyframes tickPop{
+  0%{transform:scale(.35)}
+  55%{transform:scale(1.3)}
+  78%{transform:scale(.93)}
+  100%{transform:scale(1)}
+}
+.item.done .check{animation:tickPop .5s cubic-bezier(.3,.9,.3,1)}
+
+/* floating button: push away, spring back past rest */
+.dock{perspective:800px}
+.fab{transform:translateZ(0) scale(1);
+  transition:transform .5s cubic-bezier(.16,1.5,.3,1),box-shadow .5s cubic-bezier(.16,1.5,.3,1)}
+.fab.press{transform:translateZ(-26px) scale(.9);transition-duration:.12s}
+@keyframes fabBounce{
+  0%  {transform:translateZ(-26px) scale(.9)}
+  40% {transform:translateZ(34px) scale(1.13)}
+  64% {transform:translateZ(-7px) scale(.97)}
+  84% {transform:translateZ(9px) scale(1.02)}
+  100%{transform:translateZ(0) scale(1)}
+}
+.fab.bounce{animation:fabBounce .62s cubic-bezier(.3,.9,.3,1) both}
+
+/* the lens dips into the bar and springs back up */
+.tabs{perspective:900px}
+@keyframes lensBounce{
+  0%  {transform:translateX(calc(var(--p) * 100%)) scale3d(1,1,1) translateZ(0)}
+  42% {transform:translateX(calc(var(--p) * 100%)) scale3d(1.07,1.24,1) translateZ(28px)}
+  70% {transform:translateX(calc(var(--p) * 100%)) scale3d(.97,.92,1) translateZ(-7px)}
+  100%{transform:translateX(calc(var(--p) * 100%)) scale3d(1,1,1) translateZ(0)}
+}
+.lens.bounce{animation:lensBounce .58s cubic-bezier(.3,.9,.3,1) both}
+
+/* sheet and toast arrive from depth */
+.sheet{
+  transform-origin:50% 100%;
+  transform:perspective(1000px) translate(-50%,105%) rotateX(14deg) scale(.96);
+  transition:transform .6s cubic-bezier(.18,1.25,.32,1);
+}
+.sheet.open{transform:perspective(1000px) translate(-50%,0) rotateX(0deg) scale(1)}
+.toast{transform:perspective(800px) translate(-50%,-160%) rotateX(-25deg) scale(.92);
+  transition:transform .55s cubic-bezier(.18,1.4,.32,1)}
+.toast.show{transform:perspective(800px) translate(-50%,0) rotateX(0deg) scale(1)}
+
+@media (prefers-reduced-motion:reduce){
+  .item.press{transform:none;box-shadow:none;filter:none}
+  .item.bounce,.item.cascade,.fab.press,.fab.bounce,.lens.bounce,.item.done .check{animation:none!important}
+  .fab{transition:none}
+  .sheet,.toast{transition:transform .18s linear}
+}
 </style>
 </head>
 <body>
@@ -443,6 +537,93 @@ body{padding-top:var(--sat,env(safe-area-inset-top,0px))!important;padding-botto
   document.addEventListener("pointerout",function(e){var g=e.target.closest&&e.target.closest(".glass");if(g)g.style.removeProperty("--lit")});
 
   render();sync();tick();syncAll();if(BR)BR.askNotifications();
+})();
+</script>
+
+<script>
+/* ---- depth bounce driver ---- */
+(function(){
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var pressed = null;
+
+  /* press: lift the card toward the viewer and tilt it toward the finger */
+  document.addEventListener('pointerdown', function(e){
+    var it = e.target.closest && e.target.closest('.item');
+    if(!it || reduce) return;
+    var r = it.getBoundingClientRect();
+    var px = r.width ? (e.clientX - r.left) / r.width : .5;
+    var py = r.height ? (e.clientY - r.top) / r.height : .5;
+    it.style.setProperty('--ry', ((px - .5) * -8).toFixed(2) + 'deg');
+    it.style.setProperty('--rx', ((py - .5) * 7).toFixed(2) + 'deg');
+    it.classList.remove('bounce');
+    it.classList.add('press');
+    pressed = it;
+  }, {passive:true});
+
+  function release(){
+    if(!pressed) return;
+    var it = pressed; pressed = null;
+    it.classList.remove('press');
+    if(!reduce) it.classList.add('bounce');
+  }
+  document.addEventListener('pointerup', release, {passive:true});
+  document.addEventListener('pointercancel', release, {passive:true});
+
+  /* cards cascade in from depth whenever the list is rebuilt */
+  var pagesEl = document.getElementById('pages');
+  if(pagesEl && window.MutationObserver){
+    new MutationObserver(function(muts){
+      if(reduce) return;
+      muts.forEach(function(m){
+        var i = 0;
+        Array.prototype.forEach.call(m.addedNodes, function(n){
+          if(!n.classList || !n.classList.contains('item')) return;
+          n.style.animationDelay = Math.min(i++, 7) * 38 + 'ms';
+          n.classList.add('cascade');
+          n.addEventListener('animationend', function h(){
+            n.classList.remove('cascade');
+            n.style.animationDelay = '';
+            n.removeEventListener('animationend', h);
+          });
+        });
+      });
+    }).observe(pagesEl, {childList:true, subtree:true});
+  }
+
+  /* the add button pushes away, then springs past rest */
+  var fab = document.getElementById('fab');
+  if(fab){
+    fab.addEventListener('pointerdown', function(){
+      if(reduce) return;
+      fab.classList.remove('bounce');
+      fab.classList.add('press');
+    }, {passive:true});
+    ['pointerup','pointercancel','pointerleave'].forEach(function(t){
+      fab.addEventListener(t, function(){
+        if(reduce || !fab.classList.contains('press')) return;
+        fab.classList.remove('press');
+        fab.classList.add('bounce');
+      }, {passive:true});
+    });
+    fab.addEventListener('animationend', function(){ fab.classList.remove('bounce'); });
+  }
+
+  /* the lens dips and springs back each time a tab settles */
+  var lensEl = document.querySelector('.lens');
+  if(pagesEl && lensEl){
+    var lastIdx = -1;
+    pagesEl.addEventListener('scroll', function(){
+      var w = pagesEl.clientWidth || 1;
+      var idx = Math.round(pagesEl.scrollLeft / w);
+      if(idx === lastIdx) return;
+      lastIdx = idx;
+      if(reduce) return;
+      lensEl.classList.remove('bounce');
+      void lensEl.offsetWidth;              /* restart the animation */
+      lensEl.classList.add('bounce');
+    }, {passive:true});
+    lensEl.addEventListener('animationend', function(){ lensEl.classList.remove('bounce'); });
+  }
 })();
 </script>
 </body>
