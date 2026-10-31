@@ -54,6 +54,26 @@ same spring drives the rest of the interface:
 All of it is CSS transforms and one small script — no animation library. Everything is disabled
 under `prefers-reduced-motion: reduce`.
 
+## Parallax and settings
+
+<p align="center">
+  <img src="docs/screenshots/08-settings.png" width="228" alt="Settings">
+  <img src="docs/screenshots/09-settings-dark.png" width="228" alt="Settings, dark">
+</p>
+
+The whole scene is parallaxed. The background drifts against the content, each card shifts by a
+depth layer (a little more than the one above it), and the list tilts a degree or two in 3D. It is
+driven by the device gyroscope where one is available, and by your finger otherwise.
+
+Tap the gear in the header to tune it:
+
+- **Depth** (0-150%) - how far cards lift toward you on press, and how far the cascade falls in from
+- **Parallax** (0-150%) - how much the background, cards and tilt move
+- **Tilt with device** - gyroscope-driven 3D tilt on or off
+
+Settings live in `localStorage["liquid.settings.v1"]` and survive a restart. Everything still
+switches off under `prefers-reduced-motion`.
+
 ## Download
 
 Grab `Reminders.apk` from the [latest release](../../releases/latest) and sideload it.
