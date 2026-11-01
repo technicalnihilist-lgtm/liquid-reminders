@@ -21,7 +21,7 @@ Items marked **[release]** also cut a GitHub release with the rebuilt APK.
 
 ## Performance
 
-- [ ] rAF-throttle the specular `pointermove` handler — it calls `getBoundingClientRect()` on every event, forcing layout
+- [x] rAF-throttle the specular `pointermove` handler — it calls `getBoundingClientRect()` on every event, forcing layout
 - [ ] Cache `pages.clientWidth` in `sync()` instead of reading it on every scroll frame
 - [ ] Debounce the `resize` handler so it runs once after the user stops rotating
 - [ ] Use `offsetX`/`offsetY` for the press tilt instead of `getBoundingClientRect()`
@@ -91,3 +91,5 @@ Items marked **[release]** also cut a GitHub release with the rebuilt APK.
 ## Done
 
 _(each run appends one line here)_
+
+- **1 Nov, run 1** — specular pointermove now coalesces to one `getBoundingClientRect()` per animation frame. 25 rapid moves produced one layout read and the highlight still lands on the right pixel; no console errors, APK rebuilds clean.
