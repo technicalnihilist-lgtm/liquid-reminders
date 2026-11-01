@@ -27,7 +27,7 @@ installable build roughly twice a day. Items marked **[release]** cut one regard
 - [x] Cache `pages.clientWidth` in `sync()` instead of reading it on every scroll frame
 - [x] Debounce the `resize` handler so it runs once after the user stops rotating
 - [x] Use `offsetX`/`offsetY` for the press tilt instead of `getBoundingClientRect()`
-- [ ] Skip the parallax rAF loop entirely while a sheet is open
+- [x] Skip the parallax rAF loop entirely while a sheet is open
 - [ ] Stop the `float` and `drift` background animations when the app is backgrounded (`visibilitychange`)
 - [ ] Reduce `backdrop-filter` work on `.glass::after` — the specular layer repaints on every pointermove
 - [ ] Replace the 15 s `setInterval` tick with a timer that wakes exactly at the next due reminder
@@ -98,3 +98,4 @@ _(each run appends one line here)_
 - **1 Nov, run 2** — `sync()` reuses a cached page width (measured on load, on `resize` and via a `ResizeObserver`) instead of reading `pages.clientWidth` on every scroll frame. 40 scroll frames now cost one layout read in total, tab switching and rotation still land on the right page; no console errors, APK rebuilds clean.
 - **1 Nov, run 3** — the `resize` handler is debounced by 140 ms, so a rotation burst now re-measures and re-aligns the pager once instead of on every event. 20 rapid resize events produced one `clientWidth` read (was 20), rotation still lands on the same tab with the scroll position aligned; no console errors, APK rebuilds clean.
 - **1 Nov, run 4** — the press tilt now reads the browser-measured `offsetX`/`offsetY` and walks the target's offsets up into the card, instead of calling `getBoundingClientRect()`. A press costs zero layout reads (was one) and the tilt still lands on the same point: a press over the title, the padding and the check button all matched the card geometry to within a tenth of a degree; no console errors, APK rebuilds clean.
+- **1 Nov, run 5** — the parallax rAF loop now parks while either sheet is open: `kick()` and `loop()` return early when `#sheet` or `#settings` carries `.open`, so moving the pointer over a sheet no longer animates the background behind the scrim. 25 pointer moves with the settings sheet open cost 0 parallax style writes (was 68) and the add sheet 0 (was 50); the loop resumes on the first move after the sheet closes, the alarm bridge is still called on save and nothing else changed; no console errors, APK rebuilds clean.

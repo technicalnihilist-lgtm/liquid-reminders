@@ -772,11 +772,22 @@ header{position:relative}
     kick();
   }, {passive:true});
 
+  /* a sheet owns the screen while it is open, so the parallax is pointless there:
+     park the loop instead of animating behind the scrim */
+  var addSheetEl = document.getElementById('sheet');
+  var setSheetEl = document.getElementById('settings');
+  function sheetOpen(){
+    return !!((addSheetEl && addSheetEl.classList.contains('open')) ||
+              (setSheetEl && setSheetEl.classList.contains('open')));
+  }
+
   function kick(){
+    if(sheetOpen()) return;
     if(!running){ running = true; requestAnimationFrame(loop); }
   }
 
   function loop(){
+    if(sheetOpen()){ running = false; return; }   /* sheet open: no frames */
     cx += (tx - cx) * .12;
     cy += (ty - cy) * .12;
     var settled = Math.abs(tx - cx) < .0008 && Math.abs(ty - cy) < .0008;
