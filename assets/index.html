@@ -152,6 +152,8 @@ header p{margin:2px 0 0;color:var(--ink2);font-size:15px;font-weight:600}
 .o3{width:124px;height:124px;left:56%;bottom:20%;animation-delay:-11s}
 @keyframes drift{to{transform:translate(34px,-56px) rotate(25deg)}}
 @media (prefers-reduced-motion:reduce){.orb{animation:none}}
+/* background motion parks while the app is backgrounded */
+html.paused .blob,html.paused .orb{animation-play-state:paused}
 .item{transition:transform .35s cubic-bezier(.2,1.5,.4,1)}
 .item:active{transform:scale(.97)}
 .field{box-shadow:inset 0 2px 7px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.65)}
@@ -610,7 +612,10 @@ header{position:relative}
     if(hit){persist();render()}
   }
   setInterval(tick,15000);
-  document.addEventListener("visibilitychange",function(){if(!document.hidden){tick();render()}});
+  document.addEventListener("visibilitychange",function(){
+    document.documentElement.classList.toggle("paused",document.hidden);
+    if(!document.hidden){tick();render()}
+  });
 
   /* specular light follows the finger / cursor */
   if(window.chrome)document.documentElement.classList.add("refract");
