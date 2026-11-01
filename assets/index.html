@@ -508,9 +508,12 @@ header{position:relative}
   }
 
   /* ---- swipe-through navigation: pager scroll drives the glass lens ---- */
-  var lens=$(".lens"),prevP=0,st,tabEls=[].slice.call(document.querySelectorAll(".tab")), dragging=false, lastIdx=0;
+  var lens=$(".lens"),prevP=0,st,tabEls=[].slice.call(document.querySelectorAll(".tab")), dragging=false, lastIdx=0, pageW=0;
+  /* the page width only changes on layout, never mid-scroll: measure once, reuse */
+  function measure(){pageW=pages.clientWidth||0}
+  if(window.ResizeObserver)new ResizeObserver(measure).observe(pages);
   function sync(){
-    var w=pages.clientWidth||1, p=Math.max(0,Math.min(3,pages.scrollLeft/w));
+    var w=pageW||(measure(),pageW)||1, p=Math.max(0,Math.min(3,pages.scrollLeft/w));
     tabs.style.setProperty("--p",p);
     var dp=Math.abs(p-prevP);prevP=p;
     lens.classList.remove("settle");
@@ -550,7 +553,7 @@ header{position:relative}
   tabs.addEventListener("click",function(e){ // keyboard activation
     var b=e.target.closest(".tab"); if(b&&e.detail===0)goto(+b.dataset.i);
   });
-  window.addEventListener("resize",function(){pages.scrollLeft=lastIdx*pages.clientWidth;sync()});
+  window.addEventListener("resize",function(){measure();pages.scrollLeft=lastIdx*(pageW||pages.clientWidth);sync()});
 
   /* ---- list actions ---- */
   document.addEventListener("click",function(e){

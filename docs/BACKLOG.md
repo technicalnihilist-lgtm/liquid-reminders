@@ -24,7 +24,7 @@ installable build roughly twice a day. Items marked **[release]** cut one regard
 ## Performance
 
 - [x] rAF-throttle the specular `pointermove` handler — it calls `getBoundingClientRect()` on every event, forcing layout
-- [ ] Cache `pages.clientWidth` in `sync()` instead of reading it on every scroll frame
+- [x] Cache `pages.clientWidth` in `sync()` instead of reading it on every scroll frame
 - [ ] Debounce the `resize` handler so it runs once after the user stops rotating
 - [ ] Use `offsetX`/`offsetY` for the press tilt instead of `getBoundingClientRect()`
 - [ ] Skip the parallax rAF loop entirely while a sheet is open
@@ -95,3 +95,4 @@ installable build roughly twice a day. Items marked **[release]** cut one regard
 _(each run appends one line here)_
 
 - **1 Nov, run 1** — specular pointermove now coalesces to one `getBoundingClientRect()` per animation frame. 25 rapid moves produced one layout read and the highlight still lands on the right pixel; no console errors, APK rebuilds clean.
+- **1 Nov, run 2** — `sync()` reuses a cached page width (measured on load, on `resize` and via a `ResizeObserver`) instead of reading `pages.clientWidth` on every scroll frame. 40 scroll frames now cost one layout read in total, tab switching and rotation still land on the right page; no console errors, APK rebuilds clean.
