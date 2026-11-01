@@ -472,7 +472,7 @@ header{position:relative}
   }
   var $=function(s){return document.querySelector(s)};
   var pages=$("#pages"), tabs=$("#tabs"), TITLES=["Today","Upcoming","All","Done"];
-  function esc(s){return String(s).replace(/[&<>'"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+  function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
   function pad(n){return n<10?"0"+n:n}
   function localInput(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"T"+pad(d.getHours())+":"+pad(d.getMinutes())}
   function endOfToday(){var d=new Date();d.setHours(23,59,59,999);return d.getTime()}
