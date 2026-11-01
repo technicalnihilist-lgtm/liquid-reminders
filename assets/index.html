@@ -472,7 +472,6 @@ header{position:relative}
   }
   var $=function(s){return document.querySelector(s)};
   var pages=$("#pages"), tabs=$("#tabs"), TITLES=["Today","Upcoming","All","Done"];
-  function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
   function pad(n){return n<10?"0"+n:n}
   function localInput(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"T"+pad(d.getHours())+":"+pad(d.getMinutes())}
   function endOfToday(){var d=new Date();d.setHours(23,59,59,999);return d.getTime()}
@@ -489,14 +488,23 @@ header{position:relative}
     ["📝","No reminders yet.<br>Tap + to create your first one."],
     ["✨","Finished reminders show up here."]
   ];
-  function row(it){
+  /* build one card as DOM nodes, so nothing is parsed back out of a string */
+  function card(it){
     var late=!it.done&&it.due&&it.due<Date.now();
-    return '<article class="item glass'+(it.done?' done':'')+'" style="--c:'+it.color+'" data-id="'+it.id+'">'+
-      '<button class="check" data-a="toggle" aria-label="Mark done"></button>'+
-      '<div class="txt"><b>'+esc(it.title)+'</b>'+
-      (it.due?'<small class="'+(late?'late':'')+'">'+fmt(it.due)+'</small>':'')+
-      (it.notes?'<small>'+esc(it.notes)+'</small>':'')+'</div>'+
-      '<button class="del" data-a="del" aria-label="Delete reminder">×</button></article>';
+    var el=document.createElement("article");
+    el.className="item glass"+(it.done?" done":"");
+    el.setAttribute("style","--c:"+it.color);
+    el.dataset.id=it.id;
+    var chk=document.createElement("button");
+    chk.className="check";chk.dataset.a="toggle";chk.setAttribute("aria-label","Mark done");
+    var txt=document.createElement("div");txt.className="txt";
+    var b=document.createElement("b");b.textContent=it.title;txt.appendChild(b);
+    if(it.due){var t=document.createElement("small");t.className=late?"late":"";t.textContent=fmt(it.due);txt.appendChild(t)}
+    if(it.notes){var n=document.createElement("small");n.textContent=it.notes;txt.appendChild(n)}
+    var del=document.createElement("button");
+    del.className="del";del.dataset.a="del";del.setAttribute("aria-label","Delete reminder");del.textContent="×";
+    el.appendChild(chk);el.appendChild(txt);el.appendChild(del);
+    return el;
   }
   function render(){
     var eod=endOfToday(), open=items.filter(function(i){return !i.done}), done=items.filter(function(i){return i.done});
@@ -507,7 +515,10 @@ header{position:relative}
       done.sort(function(a,b){return (b.doneAt||0)-(a.doneAt||0)})
     ];
     lists.forEach(function(l,i){
-      $("#p"+i).innerHTML=l.length?l.map(row).join(""):'<div class="empty"><span>'+EMPTY[i][0]+'</span>'+EMPTY[i][1]+'</div>';
+      var page=$("#p"+i), frag=document.createDocumentFragment();
+      if(l.length){ l.forEach(function(it){ frag.appendChild(card(it)) }) }
+      else { var e=document.createElement("div"); e.className="empty"; e.innerHTML="<span>"+EMPTY[i][0]+"</span>"+EMPTY[i][1]; frag.appendChild(e) }
+      page.textContent=""; page.appendChild(frag);
     });
     var n=lists[0].length; $("#n0").textContent=n?n:"";
     $("#sub").textContent=new Date().toLocaleDateString([],{weekday:"long",month:"long",day:"numeric"})+(open.length?" · "+open.length+" to do":"");
