@@ -143,7 +143,11 @@ header p{margin:2px 0 0;color:var(--ink2);font-size:15px;font-weight:600}
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
 .glass::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
   background:radial-gradient(170px circle at var(--mx,22%) var(--my,0%),rgba(255,255,255,.55),transparent 62%);
-  opacity:var(--lit,.5);transition:opacity .35s}
+  opacity:var(--lit,.5);transition:opacity .35s;
+  /* keep the specular highlight on its own compositor layer: moving it repaints that layer
+     alone instead of dirtying the card, so the card's backdrop-filter is not re-run on every
+     pointermove */
+  will-change:opacity}
 .orb{position:absolute;border-radius:50%;animation:drift 18s ease-in-out infinite alternate;
   background:radial-gradient(circle at 30% 25%,rgba(255,255,255,.95),rgba(255,255,255,.18) 38%,rgba(255,255,255,.04) 72%);
   box-shadow:inset -8px -10px 24px rgba(255,255,255,.28),0 22px 40px rgba(30,20,90,.16)}
@@ -468,7 +472,7 @@ header{position:relative}
   }
   var $=function(s){return document.querySelector(s)};
   var pages=$("#pages"), tabs=$("#tabs"), TITLES=["Today","Upcoming","All","Done"];
-  function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+  function esc(s){return String(s).replace(/[&<>'"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
   function pad(n){return n<10?"0"+n:n}
   function localInput(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"T"+pad(d.getHours())+":"+pad(d.getMinutes())}
   function endOfToday(){var d=new Date();d.setHours(23,59,59,999);return d.getTime()}
