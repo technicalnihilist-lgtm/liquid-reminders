@@ -16,7 +16,8 @@ The queue for the scheduled maintenance runs (1-20 November, ten runs a day).
   a broken app is not.
 - Tick the box and add one line under "Done" saying what changed.
 
-Items marked **[release]** also cut a GitHub release with the rebuilt APK.
+Every fifth completed item also cuts a GitHub release with the rebuilt APK, so there is an
+installable build roughly twice a day. Items marked **[release]** cut one regardless.
 
 ---
 
