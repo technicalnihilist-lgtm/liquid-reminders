@@ -25,7 +25,7 @@ installable build roughly twice a day. Items marked **[release]** cut one regard
 
 - [x] rAF-throttle the specular `pointermove` handler — it calls `getBoundingClientRect()` on every event, forcing layout
 - [x] Cache `pages.clientWidth` in `sync()` instead of reading it on every scroll frame
-- [ ] Debounce the `resize` handler so it runs once after the user stops rotating
+- [x] Debounce the `resize` handler so it runs once after the user stops rotating
 - [ ] Use `offsetX`/`offsetY` for the press tilt instead of `getBoundingClientRect()`
 - [ ] Skip the parallax rAF loop entirely while a sheet is open
 - [ ] Stop the `float` and `drift` background animations when the app is backgrounded (`visibilitychange`)
@@ -96,3 +96,4 @@ _(each run appends one line here)_
 
 - **1 Nov, run 1** — specular pointermove now coalesces to one `getBoundingClientRect()` per animation frame. 25 rapid moves produced one layout read and the highlight still lands on the right pixel; no console errors, APK rebuilds clean.
 - **1 Nov, run 2** — `sync()` reuses a cached page width (measured on load, on `resize` and via a `ResizeObserver`) instead of reading `pages.clientWidth` on every scroll frame. 40 scroll frames now cost one layout read in total, tab switching and rotation still land on the right page; no console errors, APK rebuilds clean.
+- **1 Nov, run 3** — the `resize` handler is debounced by 140 ms, so a rotation burst now re-measures and re-aligns the pager once instead of on every event. 20 rapid resize events produced one `clientWidth` read (was 20), rotation still lands on the same tab with the scroll position aligned; no console errors, APK rebuilds clean.

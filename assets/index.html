@@ -553,7 +553,12 @@ header{position:relative}
   tabs.addEventListener("click",function(e){ // keyboard activation
     var b=e.target.closest(".tab"); if(b&&e.detail===0)goto(+b.dataset.i);
   });
-  window.addEventListener("resize",function(){measure();pages.scrollLeft=lastIdx*(pageW||pages.clientWidth);sync()});
+  /* rotating fires a burst of resize events: re-measure and re-align once it settles */
+  var rzT;
+  window.addEventListener("resize",function(){
+    clearTimeout(rzT);
+    rzT=setTimeout(function(){measure();pages.scrollLeft=lastIdx*(pageW||pages.clientWidth);sync()},140);
+  });
 
   /* ---- list actions ---- */
   document.addEventListener("click",function(e){
