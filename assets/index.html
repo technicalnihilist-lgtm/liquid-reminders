@@ -644,9 +644,13 @@ header{position:relative}
   document.addEventListener('pointerdown', function(e){
     var it = e.target.closest && e.target.closest('.item');
     if(!it || reduce) return;
-    var r = it.getBoundingClientRect();
-    var px = r.width ? (e.clientX - r.left) / r.width : .5;
-    var py = r.height ? (e.clientY - r.top) / r.height : .5;
+    /* the browser already measured offsetX/offsetY against the event target, so the
+       press point costs no layout read; walk the offsets up into the card's own box */
+    var ox = e.offsetX, oy = e.offsetY, n = e.target;
+    while(n && n !== it){ ox += n.offsetLeft; oy += n.offsetTop; n = n.offsetParent; }
+    var w = it.offsetWidth, h = it.offsetHeight;
+    var px = w ? ox / w : .5;
+    var py = h ? oy / h : .5;
     it.style.setProperty('--ry', ((px - .5) * -8).toFixed(2) + 'deg');
     it.style.setProperty('--rx', ((py - .5) * 7).toFixed(2) + 'deg');
     it.classList.remove('bounce');
