@@ -462,7 +462,7 @@ header{position:relative}
   var BR=(window.AndroidBridge||null);
   var items=[], color=COLORS[0];
   try{ items=JSON.parse(localStorage.getItem(KEY)||"[]"); }catch(e){ items=[]; }
-  function persist(){ try{ localStorage.setItem(KEY,JSON.stringify(items)); }catch(e){} }
+  function persist(){ try{ localStorage.setItem(KEY,JSON.stringify(items)); }catch(e){} schedule(); }
   /* hand the whole list to the Android alarm scheduler */
   function syncAll(){
     if(!BR)return;
@@ -614,8 +614,21 @@ header{position:relative}
     var now=Date.now(),hit=false;
     items.forEach(function(it){if(!it.done&&!it.fired&&it.due&&it.due<=now){it.fired=true;hit=true;alertFor(it)}});
     if(hit){persist();render()}
+    schedule();
   }
-  setInterval(tick,15000);
+  /* one timer that wakes exactly at the next due reminder, instead of polling every 15 s */
+  var tickT;
+  function nextDue(){
+    var best=0;
+    items.forEach(function(it){if(!it.done&&!it.fired&&it.due&&(!best||it.due<best))best=it.due});
+    return best;
+  }
+  function schedule(){
+    clearTimeout(tickT);tickT=0;
+    var t=nextDue();
+    if(!t)return;
+    tickT=setTimeout(function(){tickT=0;tick()},Math.min(Math.max(0,t-Date.now())+60,2147483647));
+  }
   document.addEventListener("visibilitychange",function(){
     document.documentElement.classList.toggle("paused",document.hidden);
     if(!document.hidden){tick();render()}
