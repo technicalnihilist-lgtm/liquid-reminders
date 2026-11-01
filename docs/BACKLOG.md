@@ -5,6 +5,7 @@ The queue for the scheduled maintenance runs (1-20 November, ten runs a day).
 **Rules for every run**
 
 - Take the **first unchecked item**. Do one item per run, not more.
+- If no unchecked items remain, find one new safe improvement yourself, add it to the list, then do it.
 - Never change the visual design, layout, spacing, colours or wording of the interface.
   "Better" means faster, smoother, safer — not different looking.
 - Never add a dependency, a framework or a bundler. `assets/index.html` stays one self-contained file.
