@@ -606,10 +606,19 @@ header{position:relative}
 
   /* specular light follows the finger / cursor */
   if(window.chrome)document.documentElement.classList.add("refract");
+  /* specular highlight: coalesce pointer events to one layout read per frame */
+  var specPending=false,specEvt=null;
   document.addEventListener("pointermove",function(e){
-    var g=e.target.closest&&e.target.closest(".glass");if(!g)return;
-    var r=g.getBoundingClientRect();
-    g.style.setProperty("--mx",(e.clientX-r.left)+"px");g.style.setProperty("--my",(e.clientY-r.top)+"px");g.style.setProperty("--lit",1);
+    specEvt=e;
+    if(specPending)return;
+    specPending=true;
+    requestAnimationFrame(function(){
+      specPending=false;
+      var ev=specEvt;if(!ev)return;
+      var g=ev.target.closest&&ev.target.closest(".glass");if(!g)return;
+      var r=g.getBoundingClientRect();
+      g.style.setProperty("--mx",(ev.clientX-r.left)+"px");g.style.setProperty("--my",(ev.clientY-r.top)+"px");g.style.setProperty("--lit",1);
+    });
   });
   document.addEventListener("pointerout",function(e){var g=e.target.closest&&e.target.closest(".glass");if(g)g.style.removeProperty("--lit")});
 
