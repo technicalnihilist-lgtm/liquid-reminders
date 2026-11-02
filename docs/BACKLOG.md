@@ -35,7 +35,7 @@ installable build roughly twice a day. Items marked **[release]** cut one regard
 - [x] Avoid rebuilding the whole list on toggle — move just the one node between pages
 - [x] Add `content-visibility:auto` to off-screen pages so the pager does less layout work
 - [x] Drop `will-change` where it is not animating (it pins compositor layers)
-- [ ] Measure and log a first-paint timing marker so runs can compare before/after
+- [x] Measure and log a first-paint timing marker so runs can compare before/after
 - [ ] Trim unused CSS rules left over from the design iterations
 
 ## Bugs and robustness
@@ -94,6 +94,7 @@ installable build roughly twice a day. Items marked **[release]** cut one regard
 
 _(each run appends one line here)_
 
+- **2 Nov, run 4** — a first-paint marker now writes one `[perf]` line per load: boot (the head script's start), first render (the four lists built), first frame (two rAFs later) and the browser's first-contentful-paint, with the same numbers left on `window.__firstPaint` so a run can read them without scraping the console. The paint entry is taken from a buffered `PerformanceObserver` the moment it lands, with a 3 s fallback so the line is written even when a browser never reports one; it logs once and never again. A headless load reported boot 159 ms, first render 777 ms, first frame 857 ms, fcp 1072 ms. Nothing on screen moved: the serialised markup of all four pages is byte-identical to the previous build, the Today, Upcoming and add-sheet screenshots are pixel-identical, and the tab-bar lens in All and Done differs by at most 49 levels — the same spread two runs of the *old* build show, so it is animation noise. The alarm bridge is still called on load and on toggle, no console errors, APK rebuilds clean.
 - **1 Nov, run 1** — specular pointermove now coalesces to one `getBoundingClientRect()` per animation frame. 25 rapid moves produced one layout read and the highlight still lands on the right pixel; no console errors, APK rebuilds clean.
 - **1 Nov, run 2** — `sync()` reuses a cached page width (measured on load, on `resize` and via a `ResizeObserver`) instead of reading `pages.clientWidth` on every scroll frame. 40 scroll frames now cost one layout read in total, tab switching and rotation still land on the right page; no console errors, APK rebuilds clean.
 - **1 Nov, run 3** — the `resize` handler is debounced by 140 ms, so a rotation burst now re-measures and re-aligns the pager once instead of on every event. 20 rapid resize events produced one `clientWidth` read (was 20), rotation still lands on the same tab with the scroll position aligned; no console errors, APK rebuilds clean.

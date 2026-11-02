@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script>/* first-paint marker: stamp the moment parsing starts, so the marker at the end of the
+   page can report boot, first render and first painted frame in one line */
+var __tBoot=(window.performance&&performance.now)?performance.now():0;</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1b1f4b">
 <title>Reminders</title>
@@ -704,6 +707,41 @@ header{position:relative}
     if(!document.hidden){tick();render()}
   });
 
+  /* ---- first-paint marker: one console line per load, so a run can compare before and
+     after. It only reads timings and writes to the console; nothing on screen is touched. ---- */
+  var tRender=0, tFrame=0, marked=false;
+  function paintEntry(){
+    var t=0;
+    if(window.performance&&performance.getEntriesByType){
+      try{ performance.getEntriesByType("paint").forEach(function(e){
+        if(e.name==="first-contentful-paint") t=e.startTime;
+      }); }catch(e){}
+    }
+    return t;
+  }
+  function markFirstPaint(){
+    if(marked)return; marked=true;
+    var fcp=paintEntry();
+    var m={boot:Math.round(__tBoot),render:Math.round(tRender),frame:Math.round(tFrame||tRender),fcp:Math.round(fcp)};
+    window.__firstPaint=m;
+    try{ console.info("[perf] first paint: boot "+m.boot+"ms, first render "+m.render+"ms, first frame "+m.frame+"ms, fcp "+(fcp?m.fcp+"ms":"n/a")); }catch(e){}
+  }
+  /* the paint entry lands a beat after the first frame: take it the moment it arrives, and
+     stop waiting after 3 s so a browser that never reports one still writes the line */
+  if(window.PerformanceObserver){
+    try{
+      var paintObs=new PerformanceObserver(function(){markFirstPaint();paintObs.disconnect()});
+      paintObs.observe({type:"paint",buffered:true});
+    }catch(e){}
+  }
+  var paintWait=0;
+  (function awaitPaint(){
+    if(marked)return;
+    if(paintEntry())return markFirstPaint();
+    if(paintWait>=3000)return markFirstPaint();
+    paintWait+=100;setTimeout(awaitPaint,100);
+  })();
+
   /* specular light follows the finger / cursor */
   if(window.chrome)document.documentElement.classList.add("refract");
   /* specular highlight: coalesce pointer events to one layout read per frame */
@@ -740,6 +778,8 @@ header{position:relative}
   });
 
   render();sync();tick();syncAll();if(BR)BR.askNotifications();
+  tRender=performance.now();
+  requestAnimationFrame(function(){requestAnimationFrame(function(){tFrame=performance.now()})});
 })();
 </script>
 
