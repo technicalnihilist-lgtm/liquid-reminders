@@ -144,11 +144,12 @@ header p{margin:2px 0 0;color:var(--ink2);font-size:15px;font-weight:600}
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
 .glass::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
   background:radial-gradient(170px circle at var(--mx,22%) var(--my,0%),rgba(255,255,255,.55),transparent 62%);
-  opacity:var(--lit,.5);transition:opacity .35s;
-  /* keep the specular highlight on its own compositor layer: moving it repaints that layer
-     alone instead of dirtying the card, so the card's backdrop-filter is not re-run on every
-     pointermove */
-  will-change:opacity}
+  opacity:var(--lit,.5);transition:opacity .35s}
+/* keep the specular highlight on its own compositor layer while it moves: moving it repaints
+   that layer alone instead of dirtying the card, so the card's backdrop-filter is not re-run
+   on every pointermove. The class goes on with the first move and comes off once the fade-out
+   has finished, so a card that is not animating pins no layer. */
+.glass.lit::after{will-change:opacity}
 .orb{position:absolute;border-radius:50%;animation:drift 18s ease-in-out infinite alternate;
   background:radial-gradient(circle at 30% 25%,rgba(255,255,255,.95),rgba(255,255,255,.18) 38%,rgba(255,255,255,.04) 72%);
   box-shadow:inset -8px -10px 24px rgba(255,255,255,.28),0 22px 40px rgba(30,20,90,.16)}
@@ -707,6 +708,19 @@ header{position:relative}
   if(window.chrome)document.documentElement.classList.add("refract");
   /* specular highlight: coalesce pointer events to one layout read per frame */
   var specPending=false,specEvt=null;
+  /* will-change pins a compositor layer, so it is carried only while the highlight is moving:
+     litOn() adds it with the first move, litOff() drops it after the .35 s fade-out */
+  var litEl=null;
+  function litOn(g){
+    if(litEl&&litEl!==g)litOff(litEl);
+    if(g._litT){clearTimeout(g._litT);g._litT=0}
+    g.classList.add("lit");litEl=g;
+  }
+  function litOff(g){
+    if(!g)return;
+    if(g._litT)clearTimeout(g._litT);
+    g._litT=setTimeout(function(){g._litT=0;g.classList.remove("lit");if(litEl===g)litEl=null},420);
+  }
   document.addEventListener("pointermove",function(e){
     specEvt=e;
     if(specPending)return;
@@ -717,9 +731,13 @@ header{position:relative}
       var g=ev.target.closest&&ev.target.closest(".glass");if(!g)return;
       var r=g.getBoundingClientRect();
       g.style.setProperty("--mx",(ev.clientX-r.left)+"px");g.style.setProperty("--my",(ev.clientY-r.top)+"px");g.style.setProperty("--lit",1);
+      litOn(g);
     });
   });
-  document.addEventListener("pointerout",function(e){var g=e.target.closest&&e.target.closest(".glass");if(g)g.style.removeProperty("--lit")});
+  document.addEventListener("pointerout",function(e){
+    var g=e.target.closest&&e.target.closest(".glass");if(!g)return;
+    g.style.removeProperty("--lit");litOff(g);
+  });
 
   render();sync();tick();syncAll();if(BR)BR.askNotifications();
 })();
