@@ -506,22 +506,75 @@ header{position:relative}
     el.appendChild(chk);el.appendChild(txt);el.appendChild(del);
     return el;
   }
-  function render(){
+  /* one empty state per page, built the same way wherever it is needed */
+  function emptyEl(i){
+    var e=document.createElement("div"); e.className="empty";
+    e.innerHTML="<span>"+EMPTY[i][0]+"</span>"+EMPTY[i][1];
+    return e;
+  }
+  /* what each page shows right now, and how many reminders are still open */
+  function board(){
     var eod=endOfToday(), open=items.filter(function(i){return !i.done}), done=items.filter(function(i){return i.done});
-    var lists=[
+    var pages=[
       open.filter(function(i){return !i.due||i.due<=eod}).sort(sortFn),
       open.filter(function(i){return i.due&&i.due>eod}).sort(sortFn),
       open.sort(sortFn).concat(done),
       done.sort(function(a,b){return (b.doneAt||0)-(a.doneAt||0)})
     ];
+    return {pages:pages, open:open.length};
+  }
+  function counts(b){
+    var n=b.pages[0].length; $("#n0").textContent=n?n:"";
+    $("#sub").textContent=new Date().toLocaleDateString([],{weekday:"long",month:"long",day:"numeric"})+(b.open?" · "+b.open+" to do":"");
+  }
+  function render(){
+    var b=board(), lists=b.pages;
     lists.forEach(function(l,i){
       var page=$("#p"+i), frag=document.createDocumentFragment();
       if(l.length){ l.forEach(function(it){ frag.appendChild(card(it)) }) }
-      else { var e=document.createElement("div"); e.className="empty"; e.innerHTML="<span>"+EMPTY[i][0]+"</span>"+EMPTY[i][1]; frag.appendChild(e) }
+      else frag.appendChild(emptyEl(i));
       page.textContent=""; page.appendChild(frag);
     });
-    var n=lists[0].length; $("#n0").textContent=n?n:"";
-    $("#sub").textContent=new Date().toLocaleDateString([],{weekday:"long",month:"long",day:"numeric"})+(open.length?" · "+open.length+" to do":"");
+    counts(b);
+  }
+  /* a toggle only changes one reminder, so move that one card into place on each page
+     and leave every other card alone instead of rebuilding all four lists */
+  function itemKids(page){
+    return [].filter.call(page.children,function(n){return n.classList&&n.classList.contains("item")});
+  }
+  function placeOnPage(page,i,order,it){
+    var kids=itemKids(page), node=null, empty=null, pos=-1, k;
+    for(k=0;k<order.length;k++) if(order[k].id===it.id){pos=k;break}
+    for(k=0;k<kids.length;k++) if(+kids[k].dataset.id===it.id){node=kids[k];break}
+    for(k=0;k<page.children.length;k++) if(page.children[k].classList.contains("empty")){empty=page.children[k];break}
+    if(pos<0){
+      if(!node) return;                       /* this page never showed it: nothing to do */
+      page.removeChild(node);
+      if(!itemKids(page).length) page.appendChild(emptyEl(i));
+      return;
+    }
+    if(!node) node=card(it);                  /* first time on this page */
+    else {
+      node.classList.toggle("done",!!it.done);
+      if(it.due){                             /* the due line is late only while it is open */
+        var t=node.querySelector(".txt small");
+        if(t) t.className=(!it.done&&it.due<Date.now())?"late":"";
+      }
+    }
+    if(empty) page.removeChild(empty);
+    var next=null;
+    for(k=0;k<kids.length;k++){
+      var n=kids[k], p=-1;
+      if(n===node) continue;
+      for(var j=0;j<order.length;j++) if(order[j].id===+n.dataset.id){p=j;break}
+      if(p>pos){next=n;break}
+    }
+    if(next) page.insertBefore(node,next); else page.appendChild(node);
+  }
+  function moveCard(it){
+    var b=board();
+    for(var i=0;i<4;i++) placeOnPage($("#p"+i),i,b.pages[i],it);
+    counts(b);
   }
 
   /* ---- swipe-through navigation: pager scroll drives the glass lens ---- */
@@ -581,8 +634,12 @@ header{position:relative}
   document.addEventListener("click",function(e){
     var b=e.target.closest("[data-a]"); if(!b)return;
     var el=b.closest(".item"), id=+el.dataset.id, it=items.filter(function(x){return x.id===id})[0]; if(!it)return;
-    if(b.dataset.a==="toggle"){it.done=!it.done;it.doneAt=it.done?Date.now():0;}
-    else items=items.filter(function(x){return x.id!==id});
+    if(b.dataset.a==="toggle"){
+      it.done=!it.done;it.doneAt=it.done?Date.now():0;
+      persist();moveCard(it);syncAll();
+      return;
+    }
+    items=items.filter(function(x){return x.id!==id});
     persist();render();syncAll();
   });
 
