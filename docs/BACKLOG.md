@@ -36,7 +36,7 @@ installable build roughly twice a day. Items marked **[release]** cut one regard
 - [x] Add `content-visibility:auto` to off-screen pages so the pager does less layout work
 - [x] Drop `will-change` where it is not animating (it pins compositor layers)
 - [x] Measure and log a first-paint timing marker so runs can compare before/after
-- [ ] Trim unused CSS rules left over from the design iterations
+- [x] Trim unused CSS rules left over from the design iterations
 
 ## Bugs and robustness
 
@@ -93,6 +93,8 @@ installable build roughly twice a day. Items marked **[release]** cut one regard
 ## Done
 
 _(each run appends one line here)_
+
+- **2 Nov, run 5** — 41 CSS declarations left over from the design iterations are gone, plus the `textarea` selector in the base `button,input,textarea` rule (the page has no textarea). Each of those declarations is superseded later in the sheet, so nothing can reach it: the original `:root` and `data-theme` ink and glass tints, the 34 px/800 heading and 15 px/600 subtitle, the glass material's first `backdrop-filter` and `box-shadow`, the first lens background, box-shadow, `transform` and `transition`, the 11.5 px tab label, `.txt small` at 13.5 px, the `--accent` tab and `--danger` late colour, `.del` at 20 px, `.empty` at 600, `--p:0` on the tab bar (the script always sets it), and the body's plain safe-area padding (the `!important` shell rule wins). Verified by reading back every element's computed style, `::before` and `::after` included, in 13 states — light and dark, reduced motion, 320/390/900 px wide, empty list, add and settings sheets open, pressed/lit/dragging classes, forced `:hover`/`:active`/`:focus`, safe-area insets, `data-theme` overrides and `refract` off: byte-identical to the previous build in every one. The eight reference screenshots (Today, All, add sheet, settings — light and dark) are pixel-identical, the alarm bridge is still called on load and on toggle, no console errors, APK rebuilds clean at 46 KB. One pair was deliberately kept: `.tab svg` `width` and `height` each look unused on their own, because the `viewBox` restores the aspect ratio, but dropping both grows the tab bar from 142 px to 245 px.
 
 - **2 Nov, run 4** — a first-paint marker now writes one `[perf]` line per load: boot (the head script's start), first render (the four lists built), first frame (two rAFs later) and the browser's first-contentful-paint, with the same numbers left on `window.__firstPaint` so a run can read them without scraping the console. The paint entry is taken from a buffered `PerformanceObserver` the moment it lands, with a 3 s fallback so the line is written even when a browser never reports one; it logs once and never again. A headless load reported boot 159 ms, first render 777 ms, first frame 857 ms, fcp 1072 ms. Nothing on screen moved: the serialised markup of all four pages is byte-identical to the previous build, the Today, Upcoming and add-sheet screenshots are pixel-identical, and the tab-bar lens in All and Done differs by at most 49 levels — the same spread two runs of the *old* build show, so it is animation noise. The alarm bridge is still called on load and on toggle, no console errors, APK rebuilds clean.
 - **1 Nov, run 1** — specular pointermove now coalesces to one `getBoundingClientRect()` per animation frame. 25 rapid moves produced one layout read and the highlight still lands on the right pixel; no console errors, APK rebuilds clean.

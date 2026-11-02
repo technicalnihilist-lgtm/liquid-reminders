@@ -10,8 +10,6 @@ var __tBoot=(window.performance&&performance.now)?performance.now():0;</script>
 <title>Reminders</title>
 <style>
 :root{
-  --ink:#14162b; --ink2:rgba(20,22,43,.62);
-  --g1:rgba(255,255,255,.24); --g2:rgba(255,255,255,.03);
   --edge:rgba(255,255,255,.7); --shade:rgba(40,30,90,.18);
   --bg1:#ffb3c7; --bg2:#a9c4ff; --bg3:#b9f0d8; --bg4:#ffe0a3;
   --accent:#0a84ff; --danger:#ff453a;
@@ -19,23 +17,18 @@ var __tBoot=(window.performance&&performance.now)?performance.now():0;</script>
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --ink:#f5f6ff; --ink2:rgba(245,246,255,.62);
-    --g1:rgba(255,255,255,.11); --g2:rgba(255,255,255,.015);
     --edge:rgba(255,255,255,.38); --shade:rgba(0,0,0,.45);
     --bg1:#6a2a6e; --bg2:#1f3b9c; --bg3:#0b6a6a; --bg4:#8a4a1c;
   }
 }
 :root[data-theme="dark"]{
-  --ink:#f5f6ff; --ink2:rgba(245,246,255,.62);
-  --g1:rgba(255,255,255,.11); --g2:rgba(255,255,255,.015);
   --edge:rgba(255,255,255,.38); --shade:rgba(0,0,0,.45);
   --bg1:#6a2a6e; --bg2:#1f3b9c; --bg3:#0b6a6a; --bg4:#8a4a1c;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;margin:0}
-body{font-family:var(--font);color:var(--ink);background:var(--bg2);overflow:hidden;
-  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-button,input,textarea{font:inherit;color:inherit}
+body{font-family:var(--font);color:var(--ink);background:var(--bg2);overflow:hidden;}
+button,input{font:inherit;color:inherit}
 button{border:0;background:none;cursor:pointer}
 
 /* living background the glass refracts */
@@ -51,18 +44,15 @@ button{border:0;background:none;cursor:pointer}
 .glass{
   background:linear-gradient(135deg,var(--g1),var(--g2));
   -webkit-backdrop-filter:blur(26px) saturate(190%) brightness(1.05);
-  backdrop-filter:blur(26px) saturate(190%) brightness(1.05);
   border:1px solid var(--edge);
-  box-shadow:inset 0 1.5px 0 rgba(255,255,255,.75),inset 0 -1px 0 rgba(255,255,255,.12),
-             inset 1px 0 0 rgba(255,255,255,.25),0 12px 32px var(--shade);
 }
 
 .app{position:relative;z-index:1;height:100%;display:flex;flex-direction:column;max-width:560px;margin:0 auto}
 header{padding:22px 24px 6px}
-header h1{margin:0;font-size:34px;font-weight:800;letter-spacing:-.8px}
-header p{margin:2px 0 0;color:var(--ink2);font-size:15px;font-weight:600}
+header h1{margin:0;}
+header p{margin:2px 0 0;color:var(--ink2);}
 
-.pages{flex:1;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;
+.pages{flex:1;display:flex;overflow-y:hidden;scroll-snap-type:x mandatory;
   scrollbar-width:none;overscroll-behavior-x:contain}
 .pages::-webkit-scrollbar{display:none}
 .page{flex:0 0 100%;scroll-snap-align:start;scroll-snap-stop:always;overflow-y:auto;
@@ -78,35 +68,32 @@ header p{margin:2px 0 0;color:var(--ink2);font-size:15px;font-weight:600}
 .item.done .check{background:var(--c)}
 .item.done .check::after{content:"";width:7px;height:12px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:translateY(-1px) rotate(45deg)}
 .txt{flex:1;min-width:0}
-.txt b{display:block;font-size:17px;font-weight:700;overflow-wrap:anywhere}
+.txt b{display:block;font-size:17px;overflow-wrap:anywhere}
 .item.done .txt b{text-decoration:line-through;opacity:.5}
-.txt small{display:block;margin-top:2px;font-size:13.5px;font-weight:600;color:var(--ink2);overflow-wrap:anywhere}
-.txt small.late{color:var(--danger)}
-.del{flex:none;width:34px;height:34px;border-radius:50%;color:var(--ink2);font-size:20px;line-height:1}
+.txt small{display:block;margin-top:2px;color:var(--ink2);overflow-wrap:anywhere}
+.txt small.late{}
+.del{flex:none;width:34px;height:34px;border-radius:50%;line-height:1}
 .del:hover{background:rgba(255,255,255,.3)}
-.empty{margin:auto;padding:60px 20px;text-align:center;color:var(--ink2);font-weight:600;line-height:1.45}
+.empty{margin:auto;padding:60px 20px;text-align:center;line-height:1.45}
 .empty span{display:block;font-size:44px;margin-bottom:8px}
 
 /* floating glass tab bar with sliding lens */
-.dock{position:fixed;left:0;right:0;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:5;display:flex;
+.dock{position:fixed;left:0;right:0;z-index:5;display:flex;
   flex-direction:column;align-items:center;gap:12px;pointer-events:none}
 .fab{pointer-events:auto;align-self:flex-end;margin-right:max(20px,calc(50% - 260px));width:58px;height:58px;border-radius:50%;
-  font-size:32px;font-weight:300;display:grid;place-items:center;transition:transform .2s}
+  font-size:32px;font-weight:300;display:grid;place-items:center;}
 .fab:active{transform:scale(.9)}
 .tabs{pointer-events:auto;position:relative;width:min(92vw,520px);display:flex;padding:6px;border-radius:999px;
-  touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab;--p:0}
-.lens{position:absolute;top:6px;bottom:6px;left:6px;width:calc((100% - 12px)/4);border-radius:999px;
-  background:linear-gradient(180deg,rgba(255,255,255,.62),rgba(255,255,255,.22));
+  touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab;}
+.lens{position:absolute;top:6px;bottom:6px;width:calc((100% - 12px)/4);border-radius:999px;
   -webkit-backdrop-filter:blur(6px) saturate(220%) brightness(1.18);backdrop-filter:blur(6px) saturate(220%) brightness(1.18);
-  border:1px solid rgba(255,255,255,.85);
-  box-shadow:inset 0 2px 3px rgba(255,255,255,.9),inset 0 -3px 8px rgba(255,255,255,.25),0 4px 14px rgba(30,20,90,.22);
-  transform:translateX(calc(var(--p)*100%)) scale(var(--s,1));transition:transform 0s}
+  border:1px solid rgba(255,255,255,.85);}
 .tabs.drag .lens{--s:1.14}
 .tabs.drag{cursor:grabbing}
-.tab{position:relative;z-index:1;flex:1;padding:9px 0 7px;border-radius:999px;font-size:11.5px;font-weight:700;
+.tab{position:relative;z-index:1;flex:1;padding:9px 0 7px;border-radius:999px;
   color:var(--ink2);display:flex;flex-direction:column;align-items:center;gap:2px;transition:color .2s}
 .tab svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-.tab.on{color:var(--accent)}
+.tab.on{}
 .tab i{position:absolute;top:4px;right:calc(50% - 22px);min-width:17px;height:17px;border-radius:9px;background:var(--danger);
   color:#fff;font:700 10.5px/17px var(--font);text-align:center;font-style:normal;padding:0 4px}
 .tab i:empty{display:none}
