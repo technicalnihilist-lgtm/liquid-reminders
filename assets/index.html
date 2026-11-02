@@ -452,8 +452,34 @@ header{position:relative}
 (function(){
   var KEY="liquid.reminders.v1", COLORS=["#0a84ff","#ff375f","#30d158","#ff9f0a","#bf5af2"];
   var BR=(window.AndroidBridge||null);
-  var items=[], color=COLORS[0];
-  try{ items=JSON.parse(localStorage.getItem(KEY)||"[]"); }catch(e){ items=[]; }
+  /* a value the app cannot read is put aside under KEY+".corrupt" instead of being
+     silently destroyed, so it can still be recovered by hand */
+  function stash(raw){
+    try{ localStorage.setItem(KEY+".corrupt",raw); }catch(e){}
+    try{ console.info("[store] unreadable list kept under "+KEY+".corrupt"); }catch(e){}
+  }
+  /* read the stored list. Anything that is not a JSON array of objects is set aside and
+     the store is rewritten clean, so one bad value cannot leave the app empty on every
+     load; entries that are not reminders are dropped and the good ones are kept. */
+  function load(){
+    var raw=null;
+    try{ raw=localStorage.getItem(KEY); }catch(e){ return []; }
+    if(!raw) return [];
+    var v=null;
+    try{ v=JSON.parse(raw); }catch(e){ v=null; }
+    if(!(v instanceof Array)){
+      stash(raw);
+      try{ localStorage.setItem(KEY,"[]"); }catch(e){}
+      return [];
+    }
+    var kept=v.filter(function(it){return it&&typeof it==="object"&&!(it instanceof Array)});
+    if(kept.length!==v.length){
+      stash(raw);
+      try{ localStorage.setItem(KEY,JSON.stringify(kept)); }catch(e){}
+    }
+    return kept;
+  }
+  var items=load(), color=COLORS[0];
   function persist(){ try{ localStorage.setItem(KEY,JSON.stringify(items)); }catch(e){} schedule(); }
   /* hand the whole list to the Android alarm scheduler */
   function syncAll(){
