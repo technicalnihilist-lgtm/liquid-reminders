@@ -490,6 +490,14 @@ header{position:relative}
     for(var k=0;k<COLORS.length;k++) if(COLORS[k]===s) return COLORS[k];
     return COLORS[0];
   }
+  /* a title that is only whitespace is not a title: a card built from one reads as blank and
+     cannot be told apart from any other. The invisible marks a paste can carry (zero-width
+     space, joiners, word joiner, byte-order mark) are dropped, and what is left is trimmed,
+     so the check on the save button and the value that is stored are the same thing. */
+  function titleOf(v){
+    var s=(typeof v==="string")?v:"";
+    return s.replace(/[\u200b-\u200d\u2060\ufeff]/g,"").trim();
+  }
   /* read the stored list. Anything that is not a JSON array of objects is set aside and
      the store is rewritten clean, so one bad value cannot leave the app empty on every
      load; entries that are not reminders are dropped and the good ones are kept. */
@@ -742,12 +750,16 @@ header{position:relative}
   }
   function closeSheet(){sheet.classList.remove("open");scrim.classList.remove("open");document.activeElement.blur()}
   $("#fab").onclick=openSheet;$("#cancel").onclick=closeSheet;scrim.onclick=closeSheet;
-  ft.addEventListener("input",function(){save.disabled=!ft.value.trim()});
+  ft.addEventListener("input",function(){save.disabled=!titleOf(ft.value)});
   ft.addEventListener("keydown",function(e){if(e.key==="Enter"&&!save.disabled)save.click()});
   document.addEventListener("keydown",function(e){if(e.key==="Escape")closeSheet()});
   save.onclick=function(){
+    /* nothing to save: the sheet stays open and the field keeps the focus, rather than a card
+       being written with a blank title */
+    var title=titleOf(ft.value);
+    if(!title){ save.disabled=true; ft.focus(); return; }
     var v=$("#f-due").value, due=v?new Date(v).getTime():0;
-    var it={id:newId(),title:ft.value.trim(),notes:$("#f-notes").value.trim(),due:due,color:color,done:false,fired:false};
+    var it={id:newId(),title:title,notes:$("#f-notes").value.trim(),due:due,color:color,done:false,fired:false};
     items.push(it);
     persist();render();closeSheet();syncAll();
     goto(due&&due>endOfToday()?1:0);
