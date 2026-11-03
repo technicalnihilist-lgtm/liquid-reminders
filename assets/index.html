@@ -466,6 +466,20 @@ header{position:relative}
     else if(typeof v==="string"&&v.trim()!=="") n=Number(v);
     return (isFinite(n)&&n>0)?n:0;
   }
+  /* ids have to be unique: two reminders saved inside the same millisecond used to get the
+     same Date.now(), so a toggle moved the wrong card and a delete took out both. A new id
+     is now strictly greater than every id already seen, seeded from the list on load, so it
+     can never repeat one that is already there. */
+  var lastId=0;
+  function newId(){
+    var t=Date.now();
+    lastId=t>lastId?t:lastId+1;
+    return lastId;
+  }
+  function seedIds(list){
+    lastId=0;
+    list.forEach(function(it){ if(typeof it.id==="number"&&isFinite(it.id)&&it.id>lastId) lastId=it.id });
+  }
   /* read the stored list. Anything that is not a JSON array of objects is set aside and
      the store is rewritten clean, so one bad value cannot leave the app empty on every
      load; entries that are not reminders are dropped and the good ones are kept. */
@@ -494,6 +508,16 @@ header{position:relative}
       if(d!==it.due){ it.due=d; fixed=true; }
     });
     if(fixed){ try{ localStorage.setItem(KEY,JSON.stringify(kept)); }catch(e){} }
+    /* the same goes for ids: a list saved by an older build can carry repeats (or a missing
+       one), so the first holder keeps its id, every later repeat gets a free one, and the
+       cleaned list is written back like the other load-time repairs. */
+    seedIds(kept);
+    var seen={}, ids=false;
+    kept.forEach(function(it){
+      if(typeof it.id!=="number"||!isFinite(it.id)||it.id<=0||seen[it.id]){ it.id=newId(); ids=true; }
+      seen[it.id]=1;
+    });
+    if(ids){ try{ localStorage.setItem(KEY,JSON.stringify(kept)); }catch(e){} }
     return kept;
   }
   var items=load(), color=COLORS[0];
@@ -704,7 +728,7 @@ header{position:relative}
   document.addEventListener("keydown",function(e){if(e.key==="Escape")closeSheet()});
   save.onclick=function(){
     var v=$("#f-due").value, due=v?new Date(v).getTime():0;
-    var it={id:Date.now(),title:ft.value.trim(),notes:$("#f-notes").value.trim(),due:due,color:color,done:false,fired:false};
+    var it={id:newId(),title:ft.value.trim(),notes:$("#f-notes").value.trim(),due:due,color:color,done:false,fired:false};
     items.push(it);
     persist();render();closeSheet();syncAll();
     goto(due&&due>endOfToday()?1:0);
