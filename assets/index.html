@@ -458,6 +458,14 @@ header{position:relative}
     try{ localStorage.setItem(KEY+".corrupt",raw); }catch(e){}
     try{ console.info("[store] unreadable list kept under "+KEY+".corrupt"); }catch(e){}
   }
+  /* a due is stored as milliseconds since the epoch, 0 meaning "no date". A numeric string
+     is read as that number; anything else that is not a finite positive number is 0. */
+  function dueNum(v){
+    var n=NaN;
+    if(typeof v==="number") n=v;
+    else if(typeof v==="string"&&v.trim()!=="") n=Number(v);
+    return (isFinite(n)&&n>0)?n:0;
+  }
   /* read the stored list. Anything that is not a JSON array of objects is set aside and
      the store is rewritten clean, so one bad value cannot leave the app empty on every
      load; entries that are not reminders are dropped and the good ones are kept. */
@@ -477,6 +485,15 @@ header{position:relative}
       stash(raw);
       try{ localStorage.setItem(KEY,JSON.stringify(kept)); }catch(e){}
     }
+    /* one bad due (NaN, a negative, a string that is not a number) would sort as a hole and
+       print an invalid date, so every due is normalised here and the clean list is written
+       back; the reminder itself is kept, it just loses a date it never really had */
+    var fixed=false;
+    kept.forEach(function(it){
+      var d=dueNum(it.due);
+      if(d!==it.due){ it.due=d; fixed=true; }
+    });
+    if(fixed){ try{ localStorage.setItem(KEY,JSON.stringify(kept)); }catch(e){} }
     return kept;
   }
   var items=load(), color=COLORS[0];
