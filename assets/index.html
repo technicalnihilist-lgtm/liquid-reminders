@@ -480,7 +480,13 @@ header{position:relative}
     return kept;
   }
   var items=load(), color=COLORS[0];
-  function persist(){ try{ localStorage.setItem(KEY,JSON.stringify(items)); }catch(e){} schedule(); }
+  /* a write that does not fit is reported, not swallowed: the list in memory stays as the
+     user left it, but they are told the change will not survive a reload */
+  function persist(){
+    try{ localStorage.setItem(KEY,JSON.stringify(items)); }
+    catch(e){ saveFailed(e); }
+    schedule();
+  }
   /* hand the whole list to the Android alarm scheduler */
   function syncAll(){
     if(!BR)return;
@@ -689,6 +695,17 @@ header{position:relative}
 
   /* ---- alerts while the app is open (no internet needed) ---- */
   var toast=$("#toast"),tt;
+  /* the store refused a write (full quota, private mode, storage turned off): say so on the
+     toast the due alerts already use, so the change is never dropped without a word */
+  function saveFailed(e){
+    var name=(e&&e.name)||"", code=e&&e.code;
+    var full=name==="QuotaExceededError"||name==="NS_ERROR_DOM_QUOTA_REACHED"||code===22||code===1014;
+    $("#t-title").textContent=full?"Not saved":"Couldn't save";
+    $("#t-sub").textContent=full?"Storage is full. Free some space and try again."
+                               :"The change could not be saved.";
+    toast.classList.add("show");clearTimeout(tt);tt=setTimeout(function(){toast.classList.remove("show")},6000);
+    try{ console.info("[store] write refused ("+(name||"unknown")+")"); }catch(e2){}
+  }
   function alertFor(it){
     $("#t-title").textContent=it.title;$("#t-sub").textContent="Reminder is due now";
     toast.classList.add("show");clearTimeout(tt);tt=setTimeout(function(){toast.classList.remove("show")},6000);
