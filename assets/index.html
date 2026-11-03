@@ -480,6 +480,16 @@ header{position:relative}
     lastId=0;
     list.forEach(function(it){ if(typeof it.id==="number"&&isFinite(it.id)&&it.id>lastId) lastId=it.id });
   }
+  /* the colour ends up inside a style attribute, so it is never taken from storage as it
+     stands: only a value that spells a palette colour (in any case) is kept, rewritten in
+     the palette's own spelling, and anything else — a colour that is not in the palette, a
+     blank, a number, an array, a value carrying extra declarations — becomes the first
+     colour. Nothing from the store is ever copied into the attribute. */
+  function colorOf(v){
+    var s=(typeof v==="string")?v.trim().toLowerCase():"";
+    for(var k=0;k<COLORS.length;k++) if(COLORS[k]===s) return COLORS[k];
+    return COLORS[0];
+  }
   /* read the stored list. Anything that is not a JSON array of objects is set aside and
      the store is rewritten clean, so one bad value cannot leave the app empty on every
      load; entries that are not reminders are dropped and the good ones are kept. */
@@ -508,6 +518,15 @@ header{position:relative}
       if(d!==it.due){ it.due=d; fixed=true; }
     });
     if(fixed){ try{ localStorage.setItem(KEY,JSON.stringify(kept)); }catch(e){} }
+    /* and for the colour: a card is built with it in its style attribute, so a stored value
+       that is not one of the palette colours is replaced here and the cleaned list written
+       back, like the other load-time repairs */
+    var cols=false;
+    kept.forEach(function(it){
+      var c=colorOf(it.color);
+      if(c!==it.color){ it.color=c; cols=true; }
+    });
+    if(cols){ try{ localStorage.setItem(KEY,JSON.stringify(kept)); }catch(e){} }
     /* the same goes for ids: a list saved by an older build can carry repeats (or a missing
        one), so the first holder keeps its id, every later repeat gets a free one, and the
        cleaned list is written back like the other load-time repairs. */
@@ -558,7 +577,7 @@ header{position:relative}
     var late=!it.done&&it.due&&it.due<Date.now();
     var el=document.createElement("article");
     el.className="item glass"+(it.done?" done":"");
-    el.setAttribute("style","--c:"+it.color);
+    el.setAttribute("style","--c:"+colorOf(it.color));
     el.dataset.id=it.id;
     var chk=document.createElement("button");
     chk.className="check";chk.dataset.a="toggle";chk.setAttribute("aria-label","Mark done");
