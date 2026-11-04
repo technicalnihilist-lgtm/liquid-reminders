@@ -795,8 +795,33 @@ header{position:relative}
     if("Notification" in window&&Notification.permission==="granted"){try{new Notification("Reminder",{body:it.title})}catch(e){}}
   }
   toast.onclick=function(){toast.classList.remove("show")};
+  /* the wall clock can be put back under the app — a manual correction, a time-zone change, an
+     NTP step — and a reminder that has already fired keeps fired:true, so its moment comes round
+     again with the alert already spent and it stays silent for good. A backward step is told
+     apart from time simply passing by comparing the two clocks: performance.now() keeps
+     counting straight through a change of the system clock, so a wall delta well short of the
+     monotonic one is the clock going back, not the app waiting. */
+  function monoNow(){
+    try{ if(window.performance&&performance.now) return performance.now(); }catch(e){}
+    return 0;
+  }
+  var clockAt=Date.now(), monoAt=monoNow();
+  function clockWentBack(){
+    var n=Date.now(), m=monoNow(), back=false;
+    if(monoAt&&m>=monoAt&&(n-clockAt)<(m-monoAt)-1000) back=true;
+    clockAt=n; monoAt=m;
+    return back;
+  }
   function tick(){
     var now=Date.now(),hit=false;
+    /* after a step back, a reminder whose due is in the future again has a moment still to
+       come, so its alert is handed back and the timer is re-armed for it; one that is still
+       overdue keeps its spent alert, so nothing rings twice */
+    if(clockWentBack()){
+      var again=false;
+      items.forEach(function(it){if(!it.done&&it.fired&&it.due&&it.due>now){it.fired=false;again=true}});
+      if(again)persist();
+    }
     items.forEach(function(it){if(!it.done&&!it.fired&&it.due&&it.due<=now){it.fired=true;hit=true;alertFor(it)}});
     if(hit){persist();render()}
     schedule();
