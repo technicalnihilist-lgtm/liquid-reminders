@@ -13,6 +13,7 @@ import android.os.Build;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /** Stores reminders that have a due time and registers them with the system alarm clock. */
@@ -46,21 +47,25 @@ public final class ReminderScheduler {
         } catch (Exception ignored) {
         }
 
-        if (due <= System.currentTimeMillis()) return;
-
         AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
         if (am == null) return;
+        /* a due that has already gone by — the app opened a moment after it, or the alarms were
+           rebuilt as it arrived — used to return here with no alarm armed at all, so the
+           reminder was never delivered. It is owed all the same, so it is armed for this
+           instant and the system delivers it straight away. */
+        long now = System.currentTimeMillis();
+        long at = due > now ? due : now;
         PendingIntent pi = fireIntent(c, id);
         try {
             if (Build.VERSION.SDK_INT >= 31 && !am.canScheduleExactAlarms()) {
-                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, due, pi);
+                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi);
             } else if (Build.VERSION.SDK_INT >= 23) {
-                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, due, pi);
+                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi);
             } else {
-                am.setExact(AlarmManager.RTC_WAKEUP, due, pi);
+                am.setExact(AlarmManager.RTC_WAKEUP, at, pi);
             }
         } catch (SecurityException e) {
-            am.set(AlarmManager.RTC_WAKEUP, due, pi);
+            am.set(AlarmManager.RTC_WAKEUP, at, pi);
         }
     }
 
@@ -88,9 +93,29 @@ public final class ReminderScheduler {
 
     /** Called by the web layer whenever the list changes: rebuild every alarm from scratch. */
     static void resync(Context c, String json) {
+        long now = System.currentTimeMillis();
+        /* an entry leaves the store the moment its alarm is delivered, so whatever is still in
+           it is a reminder the system has not fired yet. The app is opened at, or a moment
+           after, the due time often enough, and clearAll() below cancels every pending alarm —
+           a reminder due exactly now was cancelled a few milliseconds before it would have
+           rung and then dropped, leaving the tray silent. Those are collected here, before the
+           store is cleared, and handed to the tray at the end instead of being thrown away. */
+        Map<Long, JSONObject> came = new HashMap<Long, JSONObject>();
+        SharedPreferences sp = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        for (Map.Entry<String, ?> e : sp.getAll().entrySet()) {
+            String k = e.getKey();
+            if (!k.startsWith(PREFIX)) continue;
+            Object v = e.getValue();
+            if (!(v instanceof String)) continue;
+            try {
+                long id = Long.parseLong(k.substring(PREFIX.length()));
+                JSONObject o = new JSONObject((String) v);
+                if (o.optLong("due", 0L) <= now) came.put(id, o);
+            } catch (Exception ignored) {
+            }
+        }
         clearAll(c);
         if (json == null) return;
-        long now = System.currentTimeMillis();
         try {
             JSONArray a = new JSONArray(json);
             for (int i = 0; i < a.length(); i++) {
@@ -101,6 +126,17 @@ public final class ReminderScheduler {
                 if (due <= now) continue;
                 schedule(c, o.optLong("id", 0L), o.optString("title", ""),
                         o.optString("notes", ""), due);
+            }
+            /* and the ones that came due while the alarms were being rebuilt are delivered
+               now: an id the list no longer carries, or one that has been ticked off, is left
+               out with the rest, so deleting or completing a reminder still silences it */
+            for (int i = 0; i < a.length(); i++) {
+                JSONObject o = a.optJSONObject(i);
+                if (o == null) continue;
+                if (o.optBoolean("done", false)) continue;
+                long id = o.optLong("id", 0L);
+                if (!came.containsKey(id)) continue;
+                notify(c, id, o.optString("title", ""), o.optString("notes", ""));
             }
         } catch (Exception ignored) {
         }
