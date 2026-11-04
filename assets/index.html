@@ -601,11 +601,21 @@ header{position:relative}
     var n=new Date(), m=new Date(n.getFullYear(),n.getMonth(),n.getDate()+1,0,0,0,0), t=m.getTime()-1;
     return t>=n.getTime()?t:n.getTime();
   }
+  /* a due date is read by the user, not just sorted, so it has to say which year it belongs to:
+     a reminder set years ahead used to print "Mon, Jan 5, 9:00 AM" and read exactly like one due
+     this year. The year is added only when it differs from today's, so the ordinary case is
+     untouched. A value the Date object cannot represent at all (a store edited by hand, a number
+     past the range it holds) has no time to show and used to print "Invalid Date, Invalid Date"
+     on the card; it now returns nothing and the line is left off entirely. */
   function fmt(t){
-    var d=new Date(t), n=new Date(), tm=d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
+    var d=new Date(t), n=new Date();
+    if(!isFinite(d.getTime())) return "";
+    var tm=d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
     var diff=Math.round((new Date(d.getFullYear(),d.getMonth(),d.getDate())-new Date(n.getFullYear(),n.getMonth(),n.getDate()))/864e5);
     if(diff===0) return "Today, "+tm; if(diff===1) return "Tomorrow, "+tm; if(diff===-1) return "Yesterday, "+tm;
-    return d.toLocaleDateString([],{weekday:"short",month:"short",day:"numeric"})+", "+tm;
+    var o={weekday:"short",month:"short",day:"numeric"};
+    if(d.getFullYear()!==n.getFullYear()) o.year="numeric";
+    return d.toLocaleDateString([],o)+", "+tm;
   }
   function sortFn(a,b){return (a.due||9e15)-(b.due||9e15)}
   var EMPTY=[
@@ -625,7 +635,8 @@ header{position:relative}
     chk.className="check";chk.dataset.a="toggle";chk.setAttribute("aria-label","Mark done");
     var txt=document.createElement("div");txt.className="txt";
     var b=document.createElement("b");b.textContent=it.title;txt.appendChild(b);
-    if(it.due){var t=document.createElement("small");t.className=late?"late":"";t.textContent=fmt(it.due);txt.appendChild(t)}
+    /* a due value with no representable date prints nothing, so no empty line is left on the card */
+    if(it.due){var s=fmt(it.due);if(s){var t=document.createElement("small");t.className=late?"late":"";t.textContent=s;txt.appendChild(t)}}
     if(it.notes){var n=document.createElement("small");n.textContent=it.notes;txt.appendChild(n)}
     var del=document.createElement("button");
     del.className="del";del.dataset.a="del";del.setAttribute("aria-label","Delete reminder");del.textContent="×";
