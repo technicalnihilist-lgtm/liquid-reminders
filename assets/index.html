@@ -847,19 +847,35 @@ header{position:relative}
     clockAt=n; monoAt=m;
     return back;
   }
+  /* one bad reminder must not take the timer down with it. An alert that throws used to end the
+     tick on the spot, so schedule() never ran, the single timer that wakes at the next due moment
+     was never re-armed, and every reminder after the bad one stayed silent until a reload. Each
+     reminder is now handled on its own, and the re-arm happens whatever the work above it did, so
+     a broken row costs its own alert and nothing more. */
+  function recover(e,where){
+    try{ console.info("[tick] recovered in "+where+": "+((e&&e.message)||e)); }catch(e2){}
+  }
   function tick(){
     var now=Date.now(),hit=false;
-    /* after a step back, a reminder whose due is in the future again has a moment still to
-       come, so its alert is handed back and the timer is re-armed for it; one that is still
-       overdue keeps its spent alert, so nothing rings twice */
-    if(clockWentBack()){
-      var again=false;
-      items.forEach(function(it){if(!it.done&&it.fired&&it.due&&it.due>now){it.fired=false;again=true}});
-      if(again)persist();
-    }
-    items.forEach(function(it){if(!it.done&&!it.fired&&it.due&&it.due<=now){it.fired=true;hit=true;alertFor(it)}});
-    if(hit){persist();render()}
-    schedule();
+    try{
+      /* after a step back, a reminder whose due is in the future again has a moment still to
+         come, so its alert is handed back and the timer is re-armed for it; one that is still
+         overdue keeps its spent alert, so nothing rings twice */
+      if(clockWentBack()){
+        var again=false;
+        items.forEach(function(it){if(!it.done&&it.fired&&it.due&&it.due>now){it.fired=false;again=true}});
+        if(again)persist();
+      }
+    }catch(e){ recover(e,"clock") }
+    try{
+      items.forEach(function(it){
+        try{ if(!it.done&&!it.fired&&it.due&&it.due<=now){it.fired=true;hit=true;alertFor(it)} }
+        catch(e){ recover(e,"alert") }
+      });
+    }catch(e){ recover(e,"scan") }
+    if(hit){ try{persist()}catch(e){recover(e,"save")} try{render()}catch(e){recover(e,"draw")} }
+    /* the timer is re-armed even when the work above threw, so the chain of due moments survives */
+    try{ schedule(); }catch(e){ recover(e,"schedule") }
   }
   /* one timer that wakes exactly at the next due reminder, instead of polling every 15 s */
   var tickT;
@@ -870,8 +886,12 @@ header{position:relative}
   }
   function schedule(){
     clearTimeout(tickT);tickT=0;
-    rearmDay();
-    var t=nextDue();
+    try{ rearmDay(); }catch(e){ recover(e,"day") }
+    var t=0;
+    /* a row that cannot be read while looking for the next due moment must not leave the app with
+       no timer at all: the wake falls back to a minute's time, as the old poll did, and the chain
+       carries on */
+    try{ t=nextDue(); }catch(e){ recover(e,"next"); t=Date.now()+60000 }
     if(!t)return;
     tickT=setTimeout(function(){tickT=0;tick()},Math.min(Math.max(0,t-Date.now())+60,2147483647));
   }
