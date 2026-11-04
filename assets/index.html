@@ -791,7 +791,7 @@ header{position:relative}
     var d=new Date(Date.now()+36e5);d.setMinutes(0,0,0);
     $("#f-due").value=localInput(d);ft.value="";$("#f-notes").value="";save.disabled=true;
     sheet.classList.add("open");scrim.classList.add("open");setTimeout(function(){ft.focus()},350);
-    if("Notification" in window&&Notification.permission==="default"){try{Notification.requestPermission()}catch(e){}}
+    askNotify();
   }
   function closeSheet(){sheet.classList.remove("open");scrim.classList.remove("open");document.activeElement.blur()}
   $("#fab").onclick=openSheet;$("#cancel").onclick=closeSheet;scrim.onclick=closeSheet;
@@ -812,6 +812,40 @@ header{position:relative}
 
   /* ---- alerts while the app is open (no internet needed) ---- */
   var toast=$("#toast"),tt;
+  /* the Notification API is not there just because its name is: Android's WebView defines
+     `window.Notification` and then throws "Illegal constructor" when it is used, and an
+     embedded or locked-down page can carry the name with nothing usable behind it — in both
+     cases reading `Notification.permission` throws. Asking for the name and reading
+     `.permission` in the same condition as the try/catch left that read outside the guard, so
+     every alert and every sheet opened on such a page raised an uncaught TypeError. The shape
+     is now checked once, before anything is read from it, and the answer is kept: a page with
+     no usable Notification simply skips the OS notification, while the in-app toast — which
+     needs none of this — still shows. */
+  var notifyOK;
+  function canNotify(){
+    if(notifyOK!==undefined) return notifyOK;
+    notifyOK=false;
+    try{
+      var N=window.Notification;
+      if(typeof N!=="function") return notifyOK;          /* absent, or a name with no constructor */
+      if(typeof N.permission!=="string") return notifyOK; /* no permission state to read */
+      notifyOK=true;
+    }catch(e){}
+    return notifyOK;
+  }
+  function permission(){
+    try{ return canNotify()?String(window.Notification.permission):""; }catch(e){ return ""; }
+  }
+  /* asking is only worth it while the answer is still undecided, and only where the browser
+     actually offers the call */
+  function askNotify(){
+    if(permission()!=="default") return;
+    try{ if(typeof window.Notification.requestPermission==="function") window.Notification.requestPermission(); }catch(e){}
+  }
+  function showNotify(title){
+    if(permission()!=="granted") return;
+    try{ new Notification("Reminder",{body:title}) }catch(e){}
+  }
   /* the store refused a write (full quota, private mode, storage turned off): say so on the
      toast the due alerts already use, so the change is never dropped without a word */
   function saveFailed(e){
@@ -827,7 +861,7 @@ header{position:relative}
     $("#t-title").textContent=it.title;$("#t-sub").textContent="Reminder is due now";
     toast.classList.add("show");clearTimeout(tt);tt=setTimeout(function(){toast.classList.remove("show")},6000);
     if(navigator.vibrate)try{navigator.vibrate([120,60,120])}catch(e){}
-    if("Notification" in window&&Notification.permission==="granted"){try{new Notification("Reminder",{body:it.title})}catch(e){}}
+    showNotify(it.title);
   }
   toast.onclick=function(){toast.classList.remove("show")};
   /* the wall clock can be put back under the app — a manual correction, a time-zone change, an
