@@ -129,6 +129,39 @@ public final class ReminderScheduler {
         }
     }
 
+    /* A reminder's title and notes are free text written by the user, and the notification is
+       the one place the app hands that text to another app. It is cleaned here, once, on the
+       way into the tray: the entities an older build wrote into storage are turned back into
+       the characters they stand for, the invisible marks a paste brings (zero-width space and
+       joiners, word joiner, byte-order mark) are dropped, a line break or a tab becomes a
+       single space — the tray draws one line, and BigTextStyle would otherwise show the break
+       as a gap — and any other control character goes with them. Whitespace is collapsed and
+       trimmed, so a note of nothing but blanks counts as no note at all. */
+    static String plainText(String s) {
+        if (s == null) return "";
+        String t = s;
+        if (t.indexOf('&') >= 0) {
+            t = t.replace("&lt;", "<").replace("&gt;", ">")
+                 .replace("&quot;", "\"").replace("&apos;", "'")
+                 .replace("&#39;", "'").replace("&nbsp;", " ")
+                 .replace("&amp;", "&");
+        }
+        StringBuilder out = new StringBuilder(t.length());
+        for (int i = 0; i < t.length(); i++) {
+            char ch = t.charAt(i);
+            if (ch == '\u200b' || ch == '\u200c' || ch == '\u200d'
+                    || ch == '\u2060' || ch == '\ufeff') continue;
+            if (ch == '\n' || ch == '\r' || ch == '\t' || ch == ' ') {
+                if (out.length() == 0 || out.charAt(out.length() - 1) == ' ') continue;
+                out.append(' ');
+                continue;
+            }
+            if (ch < 0x20 || ch == 0x7f) continue;
+            out.append(ch);
+        }
+        return out.toString().trim();
+    }
+
     static void notify(Context c, long id, String title, String notes) {
         NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm == null) return;
@@ -148,15 +181,17 @@ public final class ReminderScheduler {
         if (Build.VERSION.SDK_INT >= 23) fl |= PendingIntent.FLAG_IMMUTABLE;
         PendingIntent content = PendingIntent.getActivity(c, (int) (Math.abs(id) % 1000000), open, fl);
 
-        boolean hasNotes = notes != null && notes.trim().length() > 0;
+        String t = plainText(title);
+        String n = plainText(notes);
+        boolean hasNotes = n.length() > 0;
         Notification.Builder b = Build.VERSION.SDK_INT >= 26
                 ? new Notification.Builder(c, CHANNEL)
                 : new Notification.Builder(c);
 
         b.setSmallIcon(R.drawable.ic_stat)
-                .setContentTitle(title == null || title.length() == 0 ? "Reminder" : title)
-                .setContentText(hasNotes ? notes : "Reminder is due now")
-                .setStyle(new Notification.BigTextStyle().bigText(hasNotes ? notes : "Reminder is due now"))
+                .setContentTitle(t.length() == 0 ? "Reminder" : t)
+                .setContentText(hasNotes ? n : "Reminder is due now")
+                .setStyle(new Notification.BigTextStyle().bigText(hasNotes ? n : "Reminder is due now"))
                 .setAutoCancel(true)
                 .setContentIntent(content)
                 .setWhen(System.currentTimeMillis())
