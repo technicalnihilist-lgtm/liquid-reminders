@@ -458,6 +458,19 @@ header{position:relative}
     try{ localStorage.setItem(KEY+".corrupt",raw); }catch(e){}
     try{ console.info("[store] unreadable list kept under "+KEY+".corrupt"); }catch(e){}
   }
+  /* the list is capped at the size the interface was built for. A store carrying far more
+     reminders than that — a runaway import, a script writing the key by hand — builds that
+     many cards on the first render and leaves the page frozen for seconds, so anything past
+     the cap is set aside under KEY+".overflow" (like the unreadable value above) and the
+     newest MAX_ITEMS are the ones kept. */
+  var MAX_ITEMS=500;
+  function capList(list){
+    if(list.length<=MAX_ITEMS) return list;
+    var keep=list.slice(list.length-MAX_ITEMS), drop=list.slice(0,list.length-MAX_ITEMS);
+    try{ localStorage.setItem(KEY+".overflow",JSON.stringify(drop)); }catch(e){}
+    try{ console.info("[store] kept the newest "+MAX_ITEMS+" of "+list.length+" reminders"); }catch(e){}
+    return keep;
+  }
   /* a due is stored as milliseconds since the epoch, 0 meaning "no date". A numeric string
      is read as that number; anything else that is not a finite positive number is 0. */
   function dueNum(v){
@@ -545,12 +558,23 @@ header{position:relative}
       seen[it.id]=1;
     });
     if(ids){ try{ localStorage.setItem(KEY,JSON.stringify(kept)); }catch(e){} }
+    /* and for the length: the cap is applied here, before anything is drawn, so a store of
+       tens of thousands of rows cannot hold the page up on the first render */
+    var capped=capList(kept);
+    if(capped!==kept){
+      kept=capped;
+      try{ localStorage.setItem(KEY,JSON.stringify(kept)); }catch(e){}
+    }
     return kept;
   }
   var items=load(), color=COLORS[0];
   /* a write that does not fit is reported, not swallowed: the list in memory stays as the
      user left it, but they are told the change will not survive a reload */
   function persist(){
+    /* the same cap on the way out, so a list that grows past it through the interface is
+       trimmed before it is stored and before it is drawn, and the reminder just added is
+       never the one dropped */
+    items=capList(items);
     try{ localStorage.setItem(KEY,JSON.stringify(items)); }
     catch(e){ saveFailed(e); }
     schedule();
