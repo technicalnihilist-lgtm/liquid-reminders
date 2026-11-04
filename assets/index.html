@@ -566,7 +566,17 @@ header{position:relative}
   var pages=$("#pages"), tabs=$("#tabs"), TITLES=["Today","Upcoming","All","Done"];
   function pad(n){return n<10?"0"+n:n}
   function localInput(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"T"+pad(d.getHours())+":"+pad(d.getMinutes())}
-  function endOfToday(){var d=new Date();d.setHours(23,59,59,999);return d.getTime()}
+  /* the last millisecond of the local day. Pinning 23:59:59.999 onto today with setHours() is
+     only right on a day that is 24 hours long: where the clocks change near midnight the local
+     day is 23 or 25 hours, so that wall-clock time is either the first of two 23:59s (an hour
+     early, which sent a reminder due later that evening to Upcoming) or a time that does not
+     exist. Asking for the next local midnight by calendar fields and stepping back one
+     millisecond is the end of this day whatever its length, and a day the calendar skips
+     outright still lands on the right instant. */
+  function endOfToday(){
+    var n=new Date(), m=new Date(n.getFullYear(),n.getMonth(),n.getDate()+1,0,0,0,0), t=m.getTime()-1;
+    return t>=n.getTime()?t:n.getTime();
+  }
   function fmt(t){
     var d=new Date(t), n=new Date(), tm=d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
     var diff=Math.round((new Date(d.getFullYear(),d.getMonth(),d.getDate())-new Date(n.getFullYear(),n.getMonth(),n.getDate()))/864e5);
@@ -800,9 +810,30 @@ header{position:relative}
   }
   function schedule(){
     clearTimeout(tickT);tickT=0;
+    rearmDay();
     var t=nextDue();
     if(!t)return;
     tickT=setTimeout(function(){tickT=0;tick()},Math.min(Math.max(0,t-Date.now())+60,2147483647));
+  }
+  /* the day rolls over at local midnight, and the Today/Upcoming split, the "Today," and
+     "Tomorrow," labels and the date under the title are all decided when a page is drawn — so
+     the app draws itself once more at the next local midnight instead of sitting on yesterday's
+     partition until the next tap. The timer is re-armed from schedule(), which every save and
+     every alert already calls, and it re-arms itself, so a device that slept through midnight
+     catches up on the first wake after it. */
+  var dayT=0, dayKey=dayStamp();
+  function dayStamp(){var n=new Date();return n.getFullYear()+"-"+(n.getMonth()+1)+"-"+n.getDate()}
+  function rearmDay(){
+    if(dayT){clearTimeout(dayT);dayT=0}
+    var n=new Date(), m=new Date(n.getFullYear(),n.getMonth(),n.getDate()+1,0,0,0,0);
+    var wait=m.getTime()-n.getTime();
+    if(!isFinite(wait)||wait<=0) wait=60000; /* no reachable midnight: look again in a minute */
+    dayT=setTimeout(function(){
+      dayT=0;
+      var k=dayStamp();
+      if(k!==dayKey){ dayKey=k; render(); }
+      schedule();
+    },Math.min(wait+50,2147483647));
   }
   document.addEventListener("visibilitychange",function(){
     document.documentElement.classList.toggle("paused",document.hidden);
