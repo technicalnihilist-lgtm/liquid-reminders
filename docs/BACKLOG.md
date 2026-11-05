@@ -61,7 +61,7 @@ installable build roughly twice a day. Items marked **[release]** cut one regard
 - [x] Trap focus inside the add and settings sheets while open
 - [x] Give the colour dots a `aria-pressed` state
 - [x] Label both sliders with `aria-valuetext` in percent
-- [ ] Increase the delete button hit area to at least 44 px without changing how it looks
+- [x] Increase the delete button hit area to at least 44 px without changing how it looks
 - [ ] Make the tab bar reachable and operable with arrow keys
 - [ ] Respect the OS text-size setting (`text-size-adjust`) without breaking the layout
 - [ ] Add a visible focus ring to the gear button
@@ -93,6 +93,8 @@ installable build roughly twice a day. Items marked **[release]** cut one regard
 ## Done
 
 _(each run appends one line here)_
+
+- **5 Nov, run 5** — the delete button is a 44×44 px touch target while the circle stays 34 px. `.del` gained `position:relative` and a transparent 44×44 `::after` centred on it, so the hit area clears the 44 px minimum without moving or resizing anything: no change to the circle, the hover fill, the × glyph or the spacing. Verified headless in Chromium with no console errors: the card, checkbox, text and button layout boxes are byte-identical to the previous build, a screenshot diff of the page is empty, and `elementFromPoint` now returns the delete button 21 px out from its centre on all four sides while 23 px still falls through. `./build.sh` produced the signed APK.
 
 - **5 Nov, run 4** — both settings sliders now say what they are set to, in percent. `#s-depth` and `#s-par` are `<input type=range>` with `min=0 max=150`, and their value is a scaling factor, not a percentage — 100 means 100% depth, 150 means 150% — so a screen reader read out a bare "100" with no unit while the `<output>` beside it showed "100%". The element now carries `aria-valuetext` ("100%" … "150%") set from the same `st.depth` / `st.par` numbers that write the `<output>`, in the `paint()` pass and again in each `input` handler, so the spoken value and the visible one are produced from one source and cannot drift. Only the attribute is new: no CSS reads it, no element, class, style, label or string of copy changed, `aria-label` ("Depth" / "Parallax") is untouched, and the range semantics (`aria-valuenow`, min, max, step) still come from the native input. Verified in headless Chromium at 412x900 over a real origin: the page loads with no console errors and no page errors; at load both sliders report "100%" and "70%", matching the outputs; driving the inputs to 65 and 120 moves `aria-valuetext` to "65%" and "120%" together with the outputs; Reset returns both to "100%" / "70%". The page's own markup and styling are byte-identical apart from the new attributes and the script that writes them, the bridge is still called (`resync` + `askNotifications` on load), and `./build.sh` produced a signed 50K APK — `com.liquid.reminders` versionCode 3 / versionName 1.2 — whose `assets/index.html` carries the change. Signed with the keystore `build.sh` generates in the workspace (a fresh key per session, as in previous runs). No dependency, no bundler.
 
