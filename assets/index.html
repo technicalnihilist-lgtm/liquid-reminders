@@ -449,6 +449,43 @@ header{position:relative}
 <div class="toast glass" id="toast" role="status" aria-live="polite"><b id="t-title"></b><span id="t-sub"></span></div>
 
 <script>
+/* ---- focus trap ----
+   a sheet owns the screen while it is open, so Tab must not walk out of it into the page
+   behind the scrim: while one is open the tab order is clipped to that sheet's own controls,
+   and whatever opened it takes the focus back when it closes. Both sheets live in different
+   closures below, so the trap is kept here where either can reach it. */
+var SHEET_TRAP=(function(){
+  var FOCUSABLE='a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  var held=null,back=null;
+  function focusables(el){
+    return [].filter.call(el.querySelectorAll(FOCUSABLE),function(n){
+      return !!(n.offsetWidth||n.offsetHeight||n.getClientRects().length);
+    });
+  }
+  function start(el){
+    if(!el||held===el)return;
+    if(held)end(held);
+    held=el;back=document.activeElement;
+  }
+  function end(el){
+    if(!el||held!==el)return;
+    held=null;
+    var to=back;back=null;
+    try{
+      if(to&&to!==document.body&&typeof to.focus==="function"&&document.contains(to))to.focus();
+    }catch(e){}
+  }
+  document.addEventListener("keydown",function(e){
+    if(e.key!=="Tab"||!held)return;
+    var f=focusables(held);
+    if(!f.length){ e.preventDefault(); return; }
+    var first=f[0],last=f[f.length-1],a=document.activeElement,inside=held.contains(a);
+    if(e.shiftKey){
+      if(!inside||a===first||a===held){ e.preventDefault(); last.focus(); }
+    }else if(!inside||a===last||a===held){ e.preventDefault(); first.focus(); }
+  });
+  return { start:start, end:end };
+})();
 (function(){
   var KEY="liquid.reminders.v1", COLORS=["#0a84ff","#ff375f","#30d158","#ff9f0a","#bf5af2"];
   var BR=(window.AndroidBridge||null);
@@ -790,10 +827,10 @@ header{position:relative}
   function openSheet(){
     var d=new Date(Date.now()+36e5);d.setMinutes(0,0,0);
     $("#f-due").value=localInput(d);ft.value="";$("#f-notes").value="";save.disabled=true;
-    sheet.classList.add("open");scrim.classList.add("open");setTimeout(function(){ft.focus()},350);
+    sheet.classList.add("open");scrim.classList.add("open");SHEET_TRAP.start(sheet);setTimeout(function(){ft.focus()},350);
     askNotify();
   }
-  function closeSheet(){sheet.classList.remove("open");scrim.classList.remove("open");document.activeElement.blur()}
+  function closeSheet(){sheet.classList.remove("open");scrim.classList.remove("open");document.activeElement.blur();SHEET_TRAP.end(sheet)}
   $("#fab").onclick=openSheet;$("#cancel").onclick=closeSheet;scrim.onclick=closeSheet;
   ft.addEventListener("input",function(){save.disabled=!titleOf(ft.value)});
   ft.addEventListener("keydown",function(e){if(e.key==="Enter"&&!save.disabled)save.click()});
@@ -1218,13 +1255,15 @@ header{position:relative}
 
   function open(){
     var add = document.getElementById('sheet');
-    if(add) add.classList.remove('open');
+    if(add){ add.classList.remove('open'); SHEET_TRAP.end(add); }
     sheet.classList.add('open');
     scrim.classList.add('open');
+    SHEET_TRAP.start(sheet);
   }
   function close(){
     sheet.classList.remove('open');
     scrim.classList.remove('open');
+    SHEET_TRAP.end(sheet);
   }
 
   gear.addEventListener('click', open);
