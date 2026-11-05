@@ -819,10 +819,12 @@ var SHEET_TRAP=(function(){
 
   /* ---- add sheet ---- */
   var sheet=$("#sheet"),scrim=$("#scrim"),ft=$("#f-title"),save=$("#save");
-  $("#dots").innerHTML=COLORS.map(function(c,i){return '<button type="button" class="dot'+(i?'':' sel')+'" style="--c:'+c+'" data-c="'+c+'" aria-label="Color '+(i+1)+'"></button>'}).join("");
+  $("#dots").innerHTML=COLORS.map(function(c,i){return '<button type="button" class="dot'+(i?'':' sel')+'" style="--c:'+c+'" data-c="'+c+'" aria-label="Color '+(i+1)+'" aria-pressed="'+(i?'false':'true')+'"></button>'}).join("");
   $("#dots").addEventListener("click",function(e){
     var d=e.target.closest(".dot"); if(!d)return; color=d.dataset.c;
-    [].forEach.call(document.querySelectorAll(".dot"),function(x){x.classList.toggle("sel",x===d)});
+    [].forEach.call(document.querySelectorAll(".dot"),function(x){
+      var on=x===d; x.classList.toggle("sel",on); x.setAttribute("aria-pressed",on?"true":"false");
+    });
   });
   function openSheet(){
     var d=new Date(Date.now()+36e5);d.setMinutes(0,0,0);
