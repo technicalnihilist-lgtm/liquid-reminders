@@ -49,7 +49,7 @@ public class MainActivity extends Activity {
         s.setSupportZoom(false);
         s.setBuiltInZoomControls(false);
         s.setDisplayZoomControls(false);
-        s.setTextZoom(100);
+        s.setTextZoom(textZoom());
         s.setMediaPlaybackRequiresUserGesture(false);
 
         web.setWebViewClient(new WebViewClient() {
@@ -78,6 +78,17 @@ public class MainActivity extends Activity {
         setContentView(web);
         web.loadUrl("file:///android_asset/index.html");
         ensureNotifPermission();
+    }
+
+    /* The user's own text-size setting is not ours to override: the page is rendered at the
+       system font scale (Configuration.fontScale, the Android "Font size" setting) instead of
+       being pinned to 100%. The scale is held inside the range the layout was checked against,
+       so an unusual OEM value cannot shrink the text to nothing or blow the layout apart. */
+    private int textZoom() {
+        float fs = getResources().getConfiguration().fontScale;
+        if (!(fs > 0f)) fs = 1f;
+        int zoom = Math.round(fs * 100f);
+        return Math.max(50, Math.min(200, zoom));
     }
 
     private void applyInsets() {
@@ -123,6 +134,9 @@ public class MainActivity extends Activity {
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         setLightBars();
+        /* a font-size change arrives here instead of recreating the activity, so the new scale
+           has to be pushed into the already-loaded page */
+        if (web != null) web.getSettings().setTextZoom(textZoom());
     }
 
     @Override

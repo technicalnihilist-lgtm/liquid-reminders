@@ -27,6 +27,11 @@ var __tBoot=(window.performance&&performance.now)?performance.now():0;</script>
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;margin:0}
+/* the shell already renders the page at the user's OS text size (WebView text zoom follows the
+   system font scale), so the browser's own text autosizing must not inflate it a second time on
+   top of that: pinning text-size-adjust to 100% makes the OS setting the only scale factor and
+   keeps the layout measurable */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{font-family:var(--font);color:var(--ink);background:var(--bg2);overflow:hidden;}
 button,input{font:inherit;color:inherit}
 button{border:0;background:none;cursor:pointer}
@@ -93,8 +98,12 @@ header p{margin:2px 0 0;color:var(--ink2);}
   border:1px solid rgba(255,255,255,.85);}
 .tabs.drag .lens{--s:1.14}
 .tabs.drag{cursor:grabbing}
-.tab{position:relative;z-index:1;flex:1;padding:9px 0 7px;border-radius:999px;
+.tab{position:relative;z-index:1;flex:1;min-width:0;padding:9px 0 7px;border-radius:999px;
   color:var(--ink2);display:flex;flex-direction:column;align-items:center;gap:2px;transition:color .2s}
+/* at a large OS text size "Upcoming" is wider than a quarter of the bar: the four labels then
+   wrap inside their own tab instead of pushing the bar past the screen edge. At the default size
+   every label already fits on one line, so nothing here is visible until the text is enlarged. */
+.tab{overflow-wrap:anywhere}
 .tab svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .tab.on{}
 .tab i{position:absolute;top:4px;right:calc(50% - 22px);min-width:17px;height:17px;border-radius:9px;background:var(--danger);
@@ -112,7 +121,8 @@ header p{margin:2px 0 0;color:var(--ink2);}
   background:rgba(255,255,255,.28);outline:none;font-size:16.5px;font-weight:600}
 .field::placeholder{color:var(--ink2)}
 .field:focus{box-shadow:0 0 0 3px rgba(10,132,255,.45)}
-.row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:4px 2px 16px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:4px 2px 16px;
+  flex-wrap:wrap}
 .dots{display:flex;gap:10px}
 .dot{width:30px;height:30px;border-radius:50%;background:var(--c);border:3px solid transparent;
   box-shadow:inset 0 1px 2px rgba(255,255,255,.7)}
@@ -235,7 +245,10 @@ html,body{overscroll-behavior:none}
 body{padding-top:var(--sat,env(safe-area-inset-top,0px))!important;padding-bottom:0!important}
 .dock{bottom:calc(14px + var(--sab,env(safe-area-inset-bottom,0px)))}
 .sheet{padding-bottom:calc(24px + var(--sab,env(safe-area-inset-bottom,0px)))}
-.page{padding-bottom:calc(190px + var(--sab,0px))}
+/* --dockh is the floating bar's measured height (142px at the default text size, where 190px
+   already leaves room for it). At a large OS text size the tab labels wrap and the bar grows,
+   so the last card still has to be able to scroll clear of it. */
+.page{padding-bottom:calc(max(190px,var(--dockh,142px) + 48px) + var(--sab,0px))}
 
 /* ============================================================
    depth bounce + 4D press
@@ -759,6 +772,18 @@ var SHEET_TRAP=(function(){
   /* the page width only changes on layout, never mid-scroll: measure once, reuse */
   function measure(){pageW=pages.clientWidth||0}
   if(window.ResizeObserver)new ResizeObserver(measure).observe(pages);
+  /* The floating bar sits over the pages, so the page reserves room for it. 142px is the bar at
+     the default text size, which the stylesheet's 190px already clears; when the OS text size is
+     large the tab labels wrap and the bar gets taller, so the reserved room follows the measured
+     height instead of a constant. --dockh only ever raises the padding. */
+  var dockEl=document.querySelector(".dock"),dockH=0;
+  function dockRoom(){
+    if(!dockEl)return;
+    var h=Math.max(142,dockEl.offsetHeight||0);
+    if(h!==dockH){dockH=h;document.documentElement.style.setProperty("--dockh",h+"px")}
+  }
+  if(window.ResizeObserver&&dockEl)new ResizeObserver(dockRoom).observe(dockEl);
+  dockRoom();
   function sync(){
     var w=pageW||(measure(),pageW)||1, p=Math.max(0,Math.min(3,pages.scrollLeft/w));
     tabs.style.setProperty("--p",p);
@@ -826,7 +851,7 @@ var SHEET_TRAP=(function(){
   var rzT;
   window.addEventListener("resize",function(){
     clearTimeout(rzT);
-    rzT=setTimeout(function(){measure();pages.scrollLeft=lastIdx*(pageW||pages.clientWidth);sync()},140);
+    rzT=setTimeout(function(){measure();dockRoom();pages.scrollLeft=lastIdx*(pageW||pages.clientWidth);sync()},140);
   });
 
   /* ---- list actions ---- */
