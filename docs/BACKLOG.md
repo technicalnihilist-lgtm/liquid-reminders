@@ -62,7 +62,7 @@ installable build roughly twice a day. Items marked **[release]** cut one regard
 - [x] Give the colour dots a `aria-pressed` state
 - [x] Label both sliders with `aria-valuetext` in percent
 - [x] Increase the delete button hit area to at least 44 px without changing how it looks
-- [ ] Make the tab bar reachable and operable with arrow keys
+- [x] Make the tab bar reachable and operable with arrow keys
 - [ ] Respect the OS text-size setting (`text-size-adjust`) without breaking the layout
 - [ ] Add a visible focus ring to the gear button
 - [ ] Mark the check buttons with the reminder title so screen readers say what they toggle
@@ -93,6 +93,8 @@ installable build roughly twice a day. Items marked **[release]** cut one regard
 ## Done
 
 _(each run appends one line here)_
+
+- **5 Nov, run 6** — the tab bar is now one Tab stop instead of four, and the arrow keys walk it. The four `.tab` buttons took four Tab presses to cross and no key moved between them. A `roving(i)` helper gives the current tab `tabindex="0"` and the other three `-1`, and it is called from `sync()` on the same `r` that already sets `.on`, so the tab order follows a swipe, a click or a key alike and the two can never disagree. A `keydown` listener on `#tabs` maps ArrowLeft/ArrowUp and ArrowRight/ArrowDown to one step (clamped at the ends), Home to the first section and End to the last; it moves focus to that tab and calls the existing `goto()`, so the page, the lens, the heading and the tab order all move together. Enter and Space still go through the bar's existing click path, and pointer drag/click handling is untouched. Nothing visual changed: no CSS, markup, class, label or copy was edited — only two attributes' worth of state and one listener. Verified in headless Chromium (420x900, real origin) with a stubbed bridge: the page loads with no console errors, warnings or page errors, `resync` and `askNotifications` are still called on load, and 21 behavioural checks pass — initial order `[0,-1,-1,-1]`, ArrowRight moves focus to tab 1, section, heading and pager scroll with it, two more rights reach Done, a further right clamps there, Home and End jump to the ends, ArrowLeft steps back, Tab leaves the bar in one press, and a pointer click still switches. A screenshot of the new page is byte-identical to the pristine one. `./build.sh` produced the signed 50K APK — `com.liquid.reminders` versionCode 3 / versionName 1.2 — carrying the change. No dependency, no bundler.
 
 - **5 Nov, run 5** — the delete button is a 44×44 px touch target while the circle stays 34 px. `.del` gained `position:relative` and a transparent 44×44 `::after` centred on it, so the hit area clears the 44 px minimum without moving or resizing anything: no change to the circle, the hover fill, the × glyph or the spacing. Verified headless in Chromium with no console errors: the card, checkbox, text and button layout boxes are byte-identical to the previous build, a screenshot diff of the page is empty, and `elementFromPoint` now returns the delete button 21 px out from its centre on all four sides while 23 px still falls through. `./build.sh` produced the signed APK.
 

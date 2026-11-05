@@ -771,9 +771,31 @@ var SHEET_TRAP=(function(){
       lastIdx=r; tabEls.forEach(function(t,i){t.classList.toggle("on",i===r)});
       $("#title").textContent=TITLES[r];
     }
+    roving(r);
   }
   pages.addEventListener("scroll",function(){requestAnimationFrame(sync)},{passive:true});
   function goto(i){pages.scrollTo({left:i*pages.clientWidth,behavior:"smooth"})}
+
+  /* the bar is one Tab stop, not four: the active tab holds the tab order and the arrows
+     walk the rest, so a keyboard can move between sections without tabbing through every
+     button. Home and End jump to the ends; focus and page move together. */
+  function roving(i){
+    tabEls.forEach(function(t,n){t.tabIndex=n===i?0:-1});
+  }
+  var ARROWS={ArrowLeft:-1,ArrowUp:-1,ArrowRight:1,ArrowDown:1};
+  tabs.addEventListener("keydown",function(e){
+    if(e.altKey||e.ctrlKey||e.metaKey)return;
+    var i=tabEls.indexOf(document.activeElement);
+    if(e.key==="Home")i=0;
+    else if(e.key==="End")i=3;
+    else if(ARROWS.hasOwnProperty(e.key)){
+      i=Math.max(0,Math.min(3,(i<0?lastIdx:i)+ARROWS[e.key]));
+    }else return;
+    e.preventDefault();
+    tabEls[i].focus();
+    goto(i);
+  });
+  roving(0);
 
   /* drag a finger across the bar and the lens (and pages) follow */
   var startX=0,moved=false;
