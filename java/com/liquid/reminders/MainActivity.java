@@ -137,6 +137,9 @@ public class MainActivity extends Activity {
            the first moment the answer can have changed: pending alarms armed while it was
            refused are rebuilt here, exact */
         ReminderScheduler.rearmIfExactAlarmsGranted(this);
+        /* the notification channel's importance is the user's to change, in system Settings, and
+           a channel that was turned down there stays down for good: it is put back to High here */
+        ReminderScheduler.ensureChannel(this);
     }
 
     @Override

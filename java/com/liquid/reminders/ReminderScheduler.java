@@ -220,17 +220,53 @@ public final class ReminderScheduler {
         return out.toString().trim();
     }
 
+    private static NotificationChannel buildChannel() {
+        NotificationChannel ch = new NotificationChannel(
+                CHANNEL, "Reminders", NotificationManager.IMPORTANCE_HIGH);
+        ch.setDescription("Due reminders from Liquid Reminders");
+        ch.enableVibration(true);
+        ch.enableLights(true);
+        return ch;
+    }
+
+    /* A channel's importance is the app's to ask for exactly once: after that the user owns it,
+       and createNotificationChannel() on a channel that already exists only updates the name
+       and the description, never the importance. Someone who had once dropped Reminders to
+       "Silent", or below High, kept a channel that could no longer ring — every later
+       notification was posted into it and the reminder passed without a sound. So when the app
+       is opened the channel that exists is compared with the one the app asks for, and if it
+       has been lowered it is deleted and created again, which is the only way the importance
+       can be brought back. Nothing is touched while the channel still matches, and a channel
+       that does not exist yet is simply created. */
+    static void ensureChannel(Context c) {
+        if (Build.VERSION.SDK_INT < 26) return;
+        NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm == null) return;
+        NotificationChannel existing;
+        try {
+            existing = nm.getNotificationChannel(CHANNEL);
+        } catch (Exception e) {
+            return;
+        }
+        if (existing != null) {
+            if (existing.getImportance() >= NotificationManager.IMPORTANCE_HIGH) return;
+            try {
+                nm.deleteNotificationChannel(CHANNEL);
+            } catch (Exception e) {
+                return;
+            }
+        }
+        nm.createNotificationChannel(buildChannel());
+    }
+
     static void notify(Context c, long id, String title, String notes) {
         NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm == null) return;
 
         if (Build.VERSION.SDK_INT >= 26) {
-            NotificationChannel ch = new NotificationChannel(
-                    CHANNEL, "Reminders", NotificationManager.IMPORTANCE_HIGH);
-            ch.setDescription("Due reminders from Liquid Reminders");
-            ch.enableVibration(true);
-            ch.enableLights(true);
-            nm.createNotificationChannel(ch);
+            /* the definition only: a channel that already exists keeps the importance the user
+               gave it here, and ensureChannel() on open is what restores a lowered one */
+            nm.createNotificationChannel(buildChannel());
         }
 
         Intent open = new Intent(c, MainActivity.class);
