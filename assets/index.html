@@ -981,6 +981,20 @@ window.LiquidBack=closeTopSheet;
     toast.classList.add("show");clearTimeout(tt);tt=setTimeout(function(){toast.classList.remove("show")},6000);
     try{ console.info("[store] write refused ("+(name||"unknown")+")"); }catch(e2){}
   }
+  /* the OS can refuse a reminder's notification — POST_NOTIFICATIONS left unanswered on
+     Android 13+, or notifications switched off for the app in Settings — and the tray then
+     stays empty with nothing on screen to say why. The shell calls this once, after the
+     answer is known, and the toast carries it in the voice the refused save already uses.
+     It is said once per install: a hint that returns on every launch is nagging, and the
+     switch is still where the user left it in Settings. */
+  function notifyHint(){
+    try{ if(localStorage.getItem(KEY+".notifHint")) return; }catch(e){}
+    try{ localStorage.setItem(KEY+".notifHint","1"); }catch(e){}
+    $("#t-title").textContent="Notifications are off";
+    $("#t-sub").textContent="Reminders won't ring until you turn them on.";
+    toast.classList.add("show");clearTimeout(tt);tt=setTimeout(function(){toast.classList.remove("show")},6000);
+  }
+  window.LiquidNotifyHint=notifyHint;
   function alertFor(it){
     $("#t-title").textContent=it.title;$("#t-sub").textContent="Reminder is due now";
     toast.classList.add("show");clearTimeout(tt);tt=setTimeout(function(){toast.classList.remove("show")},6000);

@@ -18,6 +18,9 @@ import android.webkit.WebViewClient;
 public class MainActivity extends Activity {
 
     private WebView web;
+    /* a permission request is outstanding between requestPermissions() and its answer, and the
+       activity is resumed in between; the hint is held back until the answer is in */
+    private boolean askingPermission = false;
     private int lastTop = 0;
     private int lastBottom = 0;
 
@@ -126,8 +129,40 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 33
                 && checkSelfPermission("android.permission.POST_NOTIFICATIONS")
                 != PackageManager.PERMISSION_GRANTED) {
+            askingPermission = true;
             requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 1);
         }
+    }
+
+    /* The dialog has been answered. Granted or refused, the answer is recorded, so that a later
+       "not allowed" can be told apart from "not asked yet", and the page is told at once rather
+       than on the next launch. */
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
+        super.onRequestPermissionsResult(requestCode, permissions, results);
+        if (requestCode != 1) return;
+        askingPermission = false;
+        ReminderScheduler.markAsked(this);
+        hintIfNotificationsRefused();
+    }
+
+    /* A reminder that cannot reach the tray fails in silence: the alarm fires, notify() throws
+       or is dropped, and the app looks like it simply forgot. The page's own toast is the one
+       place it can say so without adding anything to the design, and it shows the line once
+       per install. Below Android 13 there is no permission to ask for — notifications are
+       switched off in system Settings, and coming back to the app is when that is noticed. */
+    private void hintIfNotificationsRefused() {
+        if (askingPermission) return;
+        if (web == null) return;
+        if (!ReminderScheduler.notificationsRefused(this)) return;
+        web.post(new Runnable() {
+            @Override
+            public void run() {
+                if (web != null) web.evaluateJavascript(
+                        "(function(){try{if(window.LiquidNotifyHint)window.LiquidNotifyHint();}catch(e){}})()",
+                        null);
+            }
+        });
     }
 
     @Override
@@ -140,6 +175,9 @@ public class MainActivity extends Activity {
         /* the notification channel's importance is the user's to change, in system Settings, and
            a channel that was turned down there stays down for good: it is put back to High here */
         ReminderScheduler.ensureChannel(this);
+        /* and if notifications are refused, say so once: the tray would otherwise stay empty
+           with nothing on screen to explain it */
+        hintIfNotificationsRefused();
     }
 
     @Override

@@ -23,6 +23,7 @@ public final class ReminderScheduler {
     static final String PREFIX = "item_";
     static final String CHANNEL = "reminders";
     static final String KEY_EXACT = "exact_alarms_granted";
+    static final String KEY_ASKED = "notif_permission_asked";
 
     private ReminderScheduler() {
     }
@@ -185,6 +186,39 @@ public final class ReminderScheduler {
         boolean was = sp.getBoolean(KEY_EXACT, false);
         if (granted != was) sp.edit().putBoolean(KEY_EXACT, granted).apply();
         if (granted && !was) rescheduleAll(c);
+    }
+
+    /* Whether a notification posted now would actually reach the tray. On Android 13+ this is
+       the POST_NOTIFICATIONS permission; below that it is the app's own switch in system
+       Settings, which the user can turn off without the app ever asking. Both are reported by
+       the same call, so the answer is read here once instead of being guessed from the SDK
+       level. A missing NotificationManager answers "allowed": there is nothing to report then,
+       and a hint would be about a problem that may not exist. */
+    static boolean notificationsAllowed(Context c) {
+        NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm == null) return true;
+        try {
+            return nm.areNotificationsEnabled();
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
+    /* "Not allowed" is only a refusal once the user has answered. On Android 13+ the permission
+       is asked for on the first launch, and until that dialog comes back a missing permission
+       means "not asked yet" — hinting then would put the hint on screen underneath the system
+       dialog the user is reading. Below 33 there is no dialog to wait for, so the app's own
+       switch is the whole answer. */
+    static boolean notificationsRefused(Context c) {
+        if (notificationsAllowed(c)) return false;
+        if (Build.VERSION.SDK_INT < 33) return true;
+        return c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_ASKED, false);
+    }
+
+    /** Recorded when the permission dialog has been answered, granted or not. */
+    static void markAsked(Context c) {
+        c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .edit().putBoolean(KEY_ASKED, true).apply();
     }
 
     /* A reminder's title and notes are free text written by the user, and the notification is
