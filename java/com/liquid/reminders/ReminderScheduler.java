@@ -22,6 +22,7 @@ public final class ReminderScheduler {
     static final String PREFS = "liquid_reminders_native";
     static final String PREFIX = "item_";
     static final String CHANNEL = "reminders";
+    static final String KEY_EXACT = "exact_alarms_granted";
 
     private ReminderScheduler() {
     }
@@ -163,6 +164,27 @@ public final class ReminderScheduler {
             } catch (Exception ignored) {
             }
         }
+    }
+
+    /* The exact-alarm permission is granted outside the app, in system Settings, so an alarm
+       armed while it was missing was handed to the inexact API and stayed approximate for good,
+       even after the user allowed exact alarms a moment later. The state last seen is kept in
+       the store; when the app is opened again and the permission has since been granted, every
+       pending reminder is rebuilt, which re-arms it through the exact path in schedule(). */
+    static void rearmIfExactAlarmsGranted(Context c) {
+        if (Build.VERSION.SDK_INT < 31) return;
+        AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
+        if (am == null) return;
+        boolean granted;
+        try {
+            granted = am.canScheduleExactAlarms();
+        } catch (Exception e) {
+            return;
+        }
+        SharedPreferences sp = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        boolean was = sp.getBoolean(KEY_EXACT, false);
+        if (granted != was) sp.edit().putBoolean(KEY_EXACT, granted).apply();
+        if (granted && !was) rescheduleAll(c);
     }
 
     /* A reminder's title and notes are free text written by the user, and the notification is

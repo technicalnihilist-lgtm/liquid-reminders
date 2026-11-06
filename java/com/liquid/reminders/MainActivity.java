@@ -131,6 +131,15 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        /* exact alarms are allowed or refused in system Settings, so coming back to the app is
+           the first moment the answer can have changed: pending alarms armed while it was
+           refused are rebuilt here, exact */
+        ReminderScheduler.rearmIfExactAlarmsGranted(this);
+    }
+
+    @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         setLightBars();
