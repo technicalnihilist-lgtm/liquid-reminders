@@ -804,8 +804,32 @@ window.LiquidBack=closeTopSheet;
 
   /* ---- swipe-through navigation: pager scroll drives the glass lens ---- */
   var lens=$(".lens"),prevP=0,st,tabEls=[].slice.call(document.querySelectorAll(".tab")), dragging=false, lastIdx=0, pageW=0;
+  /* the app is one page in a WebView, so when Android kills the process in the background and
+     the user comes back, onCreate builds a fresh WebView and the page reloads at the top of
+     Today, whatever section they were reading. The tab they last settled on is kept beside the
+     list and read back once the pager has a width, so the pager, the lens, the highlighted tab,
+     the title and the tab order all come up on that section instead of sliding there. Only a
+     real tab index is accepted: a store edited by hand cannot land on a section that is not
+     there, and it falls back to Today. */
+  var TABKEY=KEY+".tab", startTab=readTab(), restored=false;
+  function readTab(){
+    var v;
+    try{ v=parseInt(localStorage.getItem(TABKEY),10); }catch(e){ return 0; }
+    return (v===0||v===1||v===2||v===3)?v:0;
+  }
+  function saveTab(i){ try{ localStorage.setItem(TABKEY,String(i)); }catch(e){} }
   /* the page width only changes on layout, never mid-scroll: measure once, reuse */
-  function measure(){pageW=pages.clientWidth||0}
+  function measure(){pageW=pages.clientWidth||0;restoreTab()}
+  /* put the pager back on the saved tab, once, as soon as it has a width: before that every
+     offset reads zero and the write would be lost. Nothing is saved until this has run, so a
+     restore that never got a width cannot overwrite the stored tab with 0. */
+  function restoreTab(){
+    if(restored)return;
+    var w=pages.clientWidth||0;
+    if(!w)return;
+    restored=true;
+    if(startTab)pages.scrollLeft=startTab*w;
+  }
   if(window.ResizeObserver)new ResizeObserver(measure).observe(pages);
   /* The floating bar sits over the pages, so the page reserves room for it. 142px is the bar at
      the default text size, which the stylesheet's 190px already clears; when the OS text size is
@@ -830,6 +854,7 @@ window.LiquidBack=closeTopSheet;
     if(r!==lastIdx||!tabEls[r].classList.contains("on")){
       lastIdx=r; tabEls.forEach(function(t,i){t.classList.toggle("on",i===r)});
       $("#title").textContent=TITLES[r];
+      if(restored)saveTab(r);
     }
     roving(r);
   }
@@ -855,7 +880,7 @@ window.LiquidBack=closeTopSheet;
     tabEls[i].focus();
     goto(i);
   });
-  roving(0);
+  roving(lastIdx);
 
   /* drag a finger across the bar and the lens (and pages) follow */
   var startX=0,moved=false;
@@ -1162,7 +1187,7 @@ window.LiquidBack=closeTopSheet;
     g.style.removeProperty("--lit");litOff(g);
   });
 
-  render();sync();tick();syncAll();if(BR)BR.askNotifications();
+  render();restoreTab();sync();tick();syncAll();if(BR)BR.askNotifications();
   tRender=performance.now();
   requestAnimationFrame(function(){requestAnimationFrame(function(){tFrame=performance.now()})});
 })();
