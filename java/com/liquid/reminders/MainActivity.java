@@ -141,18 +141,16 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        // If the add-reminder sheet is open, close it first; otherwise leave the app.
+        /* Back closes whichever sheet is up before it leaves the app. Both sheets share one
+           scrim, so asking the page only "is the scrim open" said nothing about which one was
+           up and Back was a no-op while Settings was open; the page now closes the open sheet
+           itself (window.LiquidBack) and answers true only when it closed something. */
         web.evaluateJavascript(
-                "(function(){var s=document.getElementById('scrim');return !!(s&&s.classList.contains('open'));})()",
+                "(function(){try{return !!(window.LiquidBack&&window.LiquidBack());}catch(e){return false;}})()",
                 new ValueCallback<String>() {
                     @Override
                     public void onReceiveValue(String value) {
-                        if ("true".equals(value)) {
-                            web.evaluateJavascript(
-                                    "document.getElementById('cancel').click()", null);
-                        } else {
-                            finish();
-                        }
+                        if (!"true".equals(value)) finish();
                     }
                 });
     }

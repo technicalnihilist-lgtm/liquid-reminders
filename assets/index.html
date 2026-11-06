@@ -506,6 +506,30 @@ var SHEET_TRAP=(function(){
   });
   return { start:start, end:end };
 })();
+
+/* ---- native back button ----
+   both sheets share one scrim, so "the scrim is open" does not say which sheet is up: the
+   shell asked only about the add sheet, clicked Cancel, and Back did nothing at all while
+   Settings was open. This closes whichever sheet is actually open, by clicking the same
+   button the user would, so the focus trap, the saved settings and the scrim all unwind the
+   way they already do. It answers true only when it closed something, so the shell can leave
+   the app when nothing was open. Kept here, at the top level, because the two sheets live in
+   separate closures below. */
+function closeTopSheet(){
+  var add=document.getElementById("sheet");
+  if(add&&add.classList.contains("open")){
+    var cancel=document.getElementById("cancel");
+    if(cancel){ cancel.click(); return true; }
+  }
+  var set=document.getElementById("settings");
+  if(set&&set.classList.contains("open")){
+    var done=document.getElementById("s-done");
+    if(done){ done.click(); return true; }
+  }
+  return false;
+}
+window.LiquidBack=closeTopSheet;
+
 (function(){
   var KEY="liquid.reminders.v1", COLORS=["#0a84ff","#ff375f","#30d158","#ff9f0a","#bf5af2"];
   var BR=(window.AndroidBridge||null);
