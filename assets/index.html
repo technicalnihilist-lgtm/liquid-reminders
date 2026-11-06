@@ -681,6 +681,11 @@ var SHEET_TRAP=(function(){
     ["📝","No reminders yet.<br>Tap + to create your first one."],
     ["✨","Finished reminders show up here."]
   ];
+  /* the check button is the only control on a card that says what it acts on, so its label
+     carries the reminder's title: read out of context in a screen reader's rotor or on a swipe
+     through the list, "Mark done" alone said nothing about which reminder it was. The same
+     button completes and reopens a reminder, so the verb follows the current state. */
+  function checkLabel(it){return (it.done?"Mark not done: ":"Mark done: ")+it.title}
   /* build one card as DOM nodes, so nothing is parsed back out of a string */
   function card(it){
     var late=!it.done&&it.due&&it.due<Date.now();
@@ -689,7 +694,7 @@ var SHEET_TRAP=(function(){
     el.setAttribute("style","--c:"+colorOf(it.color));
     el.dataset.id=it.id;
     var chk=document.createElement("button");
-    chk.className="check";chk.dataset.a="toggle";chk.setAttribute("aria-label","Mark done");
+    chk.className="check";chk.dataset.a="toggle";chk.setAttribute("aria-label",checkLabel(it));
     var txt=document.createElement("div");txt.className="txt";
     var b=document.createElement("b");b.textContent=it.title;txt.appendChild(b);
     /* a due value with no representable date prints nothing, so no empty line is left on the card */
@@ -750,6 +755,8 @@ var SHEET_TRAP=(function(){
     if(!node) node=card(it);                  /* first time on this page */
     else {
       node.classList.toggle("done",!!it.done);
+      /* the card is reused rather than rebuilt, so the label has to follow the state here too */
+      node.querySelector(".check").setAttribute("aria-label",checkLabel(it));
       if(it.due){                             /* the due line is late only while it is open */
         var t=node.querySelector(".txt small");
         if(t) t.className=(!it.done&&it.due<Date.now())?"late":"";
