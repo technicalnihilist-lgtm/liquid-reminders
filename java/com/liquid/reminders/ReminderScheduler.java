@@ -13,6 +13,8 @@ import android.os.Build;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,6 +26,7 @@ public final class ReminderScheduler {
     static final String CHANNEL = "reminders";
     static final String KEY_EXACT = "exact_alarms_granted";
     static final String KEY_ASKED = "notif_permission_asked";
+    static final String KEY_SYNC = "last_sync_signature";
 
     private ReminderScheduler() {
     }
@@ -96,6 +99,23 @@ public final class ReminderScheduler {
     /** Called by the web layer whenever the list changes: rebuild every alarm from scratch. */
     static void resync(Context c, String json) {
         long now = System.currentTimeMillis();
+        SharedPreferences sp = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        /* The page hands the whole list over on every save and again every time it is opened,
+           and each of those calls cancelled every pending alarm and armed it again, so opening
+           the app with nothing changed repeated all of that work for an identical set of
+           alarms. The list last synced is remembered as a signature of everything the
+           scheduling below reads, and a list that produces the signature already stored is
+           left alone: the alarms it was built from are still armed, so nothing has to be
+           rebuilt for it. Nothing is lost by skipping — a reminder that has come due since
+           the last sync keeps its own alarm, which fires by itself, instead of being cancelled
+           here and delivered by hand. A signature is dropped with the rest of the store in
+           clearAll(), so a store that has been wiped is always rebuilt. */
+        if (json == null) {
+            clearAll(c);
+            return;
+        }
+        String signature = signature(json);
+        if (signature != null && signature.equals(sp.getString(KEY_SYNC, null))) return;
         /* an entry leaves the store the moment its alarm is delivered, so whatever is still in
            it is a reminder the system has not fired yet. The app is opened at, or a moment
            after, the due time often enough, and clearAll() below cancels every pending alarm —
@@ -103,7 +123,6 @@ public final class ReminderScheduler {
            rung and then dropped, leaving the tray silent. Those are collected here, before the
            store is cleared, and handed to the tray at the end instead of being thrown away. */
         Map<Long, JSONObject> came = new HashMap<Long, JSONObject>();
-        SharedPreferences sp = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         for (Map.Entry<String, ?> e : sp.getAll().entrySet()) {
             String k = e.getKey();
             if (!k.startsWith(PREFIX)) continue;
@@ -117,7 +136,6 @@ public final class ReminderScheduler {
             }
         }
         clearAll(c);
-        if (json == null) return;
         try {
             JSONArray a = new JSONArray(json);
             for (int i = 0; i < a.length(); i++) {
@@ -140,8 +158,40 @@ public final class ReminderScheduler {
                 if (!came.containsKey(id)) continue;
                 notify(c, id, o.optString("title", ""), o.optString("notes", ""));
             }
+            /* stored only once the alarms above are all armed, so a sync that failed halfway
+               is rebuilt next time rather than skipped over */
+            sp.edit().putString(KEY_SYNC, signature).apply();
         } catch (Exception ignored) {
         }
+    }
+
+    /* What the list is, for the skip in resync(): one line per reminder holding exactly the
+       fields the scheduling there reads, written as JSON so a title or a note cannot run into
+       the next field, and sorted so that the same reminders listed in a different order — a
+       toggle moves a card between pages — still read as the same set. An unreadable list has
+       no signature at all, which matches nothing and so rebuilds the alarms. */
+    private static String signature(String json) {
+        ArrayList<String> rows = new ArrayList<String>();
+        try {
+            JSONArray a = new JSONArray(json);
+            for (int i = 0; i < a.length(); i++) {
+                JSONObject o = a.optJSONObject(i);
+                if (o == null) continue;
+                JSONObject r = new JSONObject();
+                r.put("id", o.optLong("id", 0L));
+                r.put("due", o.optLong("due", 0L));
+                r.put("title", o.optString("title", ""));
+                r.put("notes", o.optString("notes", ""));
+                r.put("done", o.optBoolean("done", false));
+                rows.add(r.toString());
+            }
+        } catch (Exception e) {
+            return null;
+        }
+        Collections.sort(rows);
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < rows.size(); i++) sb.append(rows.get(i)).append('\n');
+        return sb.toString();
     }
 
     /** Re-arm everything after a reboot or app update. */
