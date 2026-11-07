@@ -194,7 +194,15 @@ public final class ReminderScheduler {
         return sb.toString();
     }
 
-    /** Re-arm everything after a reboot or app update. */
+    /* Re-arm everything after a reboot or an app update. Both events drop every alarm the app
+       had armed, and the store is what survives them, so what is in it is armed again here. An
+       entry whose due time has gone by was never fired — an alarm that fires removes its own
+       entry — and it used to be dropped here in silence, so a reminder that came due while the
+       device was off, or while the update was replacing the app, was lost without a sound. It
+       is owed all the same, so it is handed to the tray like any other before it is dropped.
+       The stored signature goes with them: it says the alarms built from that list are armed,
+       which is no longer true after this event, and resync() would otherwise skip rebuilding a
+       list it thinks it has already scheduled. */
     static void rescheduleAll(Context c) {
         SharedPreferences sp = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         long now = System.currentTimeMillis();
@@ -206,15 +214,17 @@ public final class ReminderScheduler {
             try {
                 JSONObject o = new JSONObject((String) v);
                 long due = o.optLong("due", 0L);
+                long id = o.optLong("id", 0L);
                 if (due > now) {
-                    schedule(c, o.optLong("id", 0L), o.optString("title", ""),
-                            o.optString("notes", ""), due);
+                    schedule(c, id, o.optString("title", ""), o.optString("notes", ""), due);
                 } else {
+                    notify(c, id, o.optString("title", ""), o.optString("notes", ""));
                     sp.edit().remove(k).apply();
                 }
             } catch (Exception ignored) {
             }
         }
+        sp.edit().remove(KEY_SYNC).apply();
     }
 
     /* The exact-alarm permission is granted outside the app, in system Settings, so an alarm
