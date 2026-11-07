@@ -12,7 +12,10 @@ var __tBoot=(window.performance&&performance.now)?performance.now():0;</script>
 :root{
   --edge:rgba(255,255,255,.7); --shade:rgba(40,30,90,.18);
   --bg1:#ffb3c7; --bg2:#a9c4ff; --bg3:#b9f0d8; --bg4:#ffe0a3;
-  --accent:#0a84ff; --danger:#ff453a;
+  /* the reminder palette is spelled once, here. The script reads these five values back out
+     of the stylesheet, so a palette colour is never written down twice in this file. */
+  --c1:#0a84ff; --c2:#ff375f; --c3:#30d158; --c4:#ff9f0a; --c5:#bf5af2;
+  --accent:var(--c1); --danger:#ff453a;
   --font:ui-rounded,"SF Pro Rounded","SF Pro Display",-apple-system,"Segoe UI",system-ui,sans-serif;
 }
 @media (prefers-color-scheme:dark){
@@ -531,7 +534,15 @@ function closeTopSheet(){
 window.LiquidBack=closeTopSheet;
 
 (function(){
-  var KEY="liquid.reminders.v1", COLORS=["#0a84ff","#ff375f","#30d158","#ff9f0a","#bf5af2"];
+  var KEY="liquid.reminders.v1", COLORS=palette();
+  /* the palette is read from the stylesheet's own custom properties instead of being typed
+     again here, so --c1..--c5 above stay the only place a reminder colour is written. The
+     values come back exactly as the stylesheet spells them (lower case, no spaces). */
+  function palette(){
+    var cs=getComputedStyle(document.documentElement), out=[];
+    for(var i=1;i<=5;i++) out.push(cs.getPropertyValue("--c"+i).trim().toLowerCase());
+    return out;
+  }
   var BR=(window.AndroidBridge||null);
   /* a value the app cannot read is put aside under KEY+".corrupt" instead of being
      silently destroyed, so it can still be recovered by hand */
