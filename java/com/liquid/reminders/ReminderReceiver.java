@@ -28,6 +28,13 @@ public class ReminderReceiver extends BroadcastReceiver {
             sp.edit().remove(ReminderScheduler.PREFIX + id).apply();
         }
 
+        /* The page alerts a reminder on its own timer at the due moment, and this alarm fires
+           for the same reminder at that same moment: with the app open the user was told twice,
+           once on the toast and once in the tray. The page's alert is the reminder while the
+           app is on screen, so the tray copy is dropped here. The stored entry has already been
+           consumed above either way, and the page's own list still carries the reminder, so
+           nothing is left to be delivered a second time. */
+        if (ReminderScheduler.isForeground()) return;
         ReminderScheduler.notify(context, id, title, notes);
     }
 }

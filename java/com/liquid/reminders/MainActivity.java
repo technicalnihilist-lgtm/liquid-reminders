@@ -185,6 +185,9 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        /* the page is on screen from here on and alerts its own reminders, so the receiver can
+           tell that a reminder firing now has already been announced in-app */
+        ReminderScheduler.setForeground(true);
         /* exact alarms are allowed or refused in system Settings, so coming back to the app is
            the first moment the answer can have changed: pending alarms armed while it was
            refused are rebuilt here, exact */
@@ -195,6 +198,15 @@ public class MainActivity extends Activity {
         /* and if notifications are refused, say so once: the tray would otherwise stay empty
            with nothing on screen to explain it */
         hintIfNotificationsRefused();
+    }
+
+    /* paused covers the app being covered, sent to the background and the screen going off:
+       from any of those the page is no longer announcing anything, so a reminder firing then is
+       the tray's to show again */
+    @Override
+    protected void onPause() {
+        ReminderScheduler.setForeground(false);
+        super.onPause();
     }
 
     @Override

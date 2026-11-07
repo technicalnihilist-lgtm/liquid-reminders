@@ -28,6 +28,21 @@ public final class ReminderScheduler {
     static final String KEY_ASKED = "notif_permission_asked";
     static final String KEY_SYNC = "last_sync_signature";
 
+    /* Whether the app is on screen. A reminder that comes due while it is gets the page's own
+       in-app alert at that moment, and the system alarm fires for the same reminder at the same
+       moment: the tray notification then repeated an alert the user had just been given. The
+       flag is set from the activity's resume and pause, so a process that the broadcast started
+       from cold has it false and posts the notification as before. */
+    private static volatile boolean foreground = false;
+
+    static void setForeground(boolean on) {
+        foreground = on;
+    }
+
+    static boolean isForeground() {
+        return foreground;
+    }
+
     private ReminderScheduler() {
     }
 
