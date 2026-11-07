@@ -46,9 +46,26 @@ public class MainActivity extends Activity {
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
-        s.setDatabaseEnabled(true);
+        /* the page keeps its reminders in localStorage and opens nothing else: the WebSQL
+           database is never used, so it is not given a file of its own in app_webview/databases */
+        s.setDatabaseEnabled(false);
+        /* the page is a single local asset and nothing in it is fetched over a network, so the
+           WebView's HTTP cache has never had anything worth keeping: LOAD_NO_CACHE stops it
+           being written to at all, and whatever an earlier version left behind is dropped once
+           per launch (localStorage, which the reminders live in, is not touched by this) */
+        s.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        web.clearCache(true);
         s.setAllowFileAccess(true);
         s.setAllowContentAccess(false);
+        /* the page loads nothing out of a file:// URL and opens no window of its own */
+        s.setAllowFileAccessFromFileURLs(false);
+        s.setAllowUniversalAccessFromFileURLs(false);
+        s.setSupportMultipleWindows(false);
+        s.setJavaScriptCanOpenWindowsAutomatically(false);
+        /* the two sheets are the only forms, both onsubmit="return false": nothing is ever
+           submitted, so nothing is worth remembering for autofill */
+        s.setSaveFormData(false);
+        s.setGeolocationEnabled(false);
         s.setSupportZoom(false);
         s.setBuiltInZoomControls(false);
         s.setDisplayZoomControls(false);
