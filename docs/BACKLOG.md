@@ -82,7 +82,7 @@ installable build roughly twice a day. Items marked **[release]** cut one regard
 ## Code quality
 
 - [x] Single source of truth for the colour palette (it is currently duplicated in JS and CSS)
-- [ ] Name the magic numbers in the animation CSS
+- [x] Name the magic numbers in the animation CSS
 - [ ] Document the bridge contract in a comment block at the top of the file
 - [ ] Split the settings defaults into one object
 - [ ] Remove dead branches left from earlier design passes
@@ -93,6 +93,8 @@ installable build roughly twice a day. Items marked **[release]** cut one regard
 ## Done
 
 _(each run appends one line here)_
+
+- **7 Nov, run 18** — the motion numbers now have names. Every duration, easing curve and negative delay the animations spend was typed straight into the rule that used it, so `cubic-bezier(.3,.9,.3,1)` appeared four times and the blob/orb delays were bare `-8s`, `-14s`, `-6s`, `-11s` with nothing saying what they were. `:root` now declares one motion block (`--dur-pop`, `--ease-pop`, `--delay-blob-2`, `--lift-press` and so on) and the animation, transition and keyframe rules read their timing from it; the two keyframe values that are also used by a rule of their own — the 38 px card lift and the −26 px FAB push — are now one variable each instead of two copies. Values are unchanged character for character, so nothing looks or moves differently, and no dependency, class or markup was touched. Verified in headless Chromium before and after: no console or page errors, every computed animation and transition property identical on 28 selectors, all thirteen animations sampled at nine progress points each with identical transforms, opacity, box-shadow and filter, and the frozen 412×892 render pixel-for-pixel identical. `./build.sh` produced the signed APK with the same certificate.
 
 - **7 Nov, run 17** — the reminder palette is now written down once, in the stylesheet. The five colours were typed twice: `COLORS` in the script and `--accent` in `:root`, so a change to one drifted from the other. `:root` now declares `--c1`..`--c5` (the same five hex values, unchanged) and `--accent` is `var(--c1)`; the script builds `COLORS` by reading `--c1`..`--c5` back out of the document with `getComputedStyle`, trimmed and lower-cased so it still matches the spelling `colorOf()` compares stored values against. Nothing else moved: same colours, same dot order, same first-colour default, and the stylesheet stays one block with no dependency added. Verified in headless Chromium at 412×915 in light and dark, before and after: no console errors or page errors, the five dots still carry `#0a84ff`, `#ff375f`, `#30d158`, `#ff9f0a`, `#bf5af2`, the primary button still resolves to `rgba(10,132,255,.78)`, and screenshots of the list and the open add sheet are byte-identical to the previous build. `./build.sh` produced the signed APK.
 

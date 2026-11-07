@@ -16,6 +16,35 @@ var __tBoot=(window.performance&&performance.now)?performance.now():0;</script>
      of the stylesheet, so a palette colour is never written down twice in this file. */
   --c1:#0a84ff; --c2:#ff375f; --c3:#30d158; --c4:#ff9f0a; --c5:#bf5af2;
   --accent:var(--c1); --danger:#ff453a;
+  /* motion: every duration, delay and easing curve the animations below spend is named here
+     once, so the numbers live in one place instead of inside the rules that use them */
+  --dur-float:22s; --ease-float:ease-in-out;
+  --dur-drift:18s; --ease-drift:ease-in-out;
+  --delay-blob-2:-8s; --delay-blob-3:-14s;
+  --delay-orb-2:-6s; --delay-orb-3:-11s;
+  --dur-pop:.35s; --ease-pop:cubic-bezier(.2,.9,.3,1.2);
+  --dur-check-bg:.25s; --dur-check-press:.2s;
+  --dur-tab:.2s; --dur-lit:.35s;
+  --dur-scrim:.3s;
+  --dur-sheet-close:.45s; --ease-sheet-close:cubic-bezier(.2,.9,.25,1);
+  --dur-toast-in:.5s; --ease-toast-in:cubic-bezier(.2,.9,.25,1.1);
+  --dur-item-tilt:.35s; --ease-item-tilt:cubic-bezier(.2,1.5,.4,1);
+  --dur-settle:.55s; --ease-settle:cubic-bezier(.16,1.45,.32,1);
+  --dur-item-filter:.3s;
+  --dur-press:.13s; --ease-press:cubic-bezier(.25,.9,.3,1);
+  --lift-press:38px;
+  --dur-depth-bounce:.68s; --ease-depth-bounce:cubic-bezier(.3,.85,.3,1);
+  --dur-cascade:.62s; --ease-cascade:cubic-bezier(.22,1.1,.32,1);
+  --dur-tick:.5s; --ease-tick:cubic-bezier(.3,.9,.3,1); --tick-from:.35;
+  --dur-fab-settle:.5s; --ease-fab-settle:cubic-bezier(.16,1.5,.3,1);
+  --dur-fab-press:.12s; --push-fab:-26px;
+  --dur-fab-bounce:.62s;
+  --dur-lens-settle:.55s; --ease-lens-settle:cubic-bezier(.3,1.7,.4,1);
+  --dur-lens-bounce:.58s;
+  --dur-sheet:.6s; --ease-sheet:cubic-bezier(.18,1.25,.32,1);
+  --dur-toast:.55s; --ease-toast:cubic-bezier(.18,1.4,.32,1);
+  --dur-switch-bg:.25s; --dur-switch-knob:.32s; --ease-switch-knob:cubic-bezier(.2,1.4,.3,1);
+  --dur-reduced:.18s;
   --font:ui-rounded,"SF Pro Rounded","SF Pro Display",-apple-system,"Segoe UI",system-ui,sans-serif;
 }
 @media (prefers-color-scheme:dark){
@@ -41,10 +70,10 @@ button{border:0;background:none;cursor:pointer}
 
 /* living background the glass refracts */
 .bg{position:fixed;inset:0;z-index:0;overflow:hidden;background:linear-gradient(160deg,var(--bg1),var(--bg2) 55%,var(--bg3))}
-.blob{position:absolute;border-radius:50%;filter:blur(40px);opacity:.9;animation:float 22s ease-in-out infinite alternate}
+.blob{position:absolute;border-radius:50%;filter:blur(40px);opacity:.9;animation:float var(--dur-float) var(--ease-float) infinite alternate}
 .b1{width:60vmax;height:60vmax;left:-20vmax;top:-12vmax;background:var(--bg4)}
-.b2{width:50vmax;height:50vmax;right:-18vmax;top:30%;background:var(--bg1);animation-delay:-8s}
-.b3{width:55vmax;height:55vmax;left:5vmax;bottom:-25vmax;background:var(--bg3);animation-delay:-14s}
+.b2{width:50vmax;height:50vmax;right:-18vmax;top:30%;background:var(--bg1);animation-delay:var(--delay-blob-2)}
+.b3{width:55vmax;height:55vmax;left:5vmax;bottom:-25vmax;background:var(--bg3);animation-delay:var(--delay-blob-3)}
 @keyframes float{to{transform:translate(8vmax,-6vmax) scale(1.15)}}
 @media (prefers-reduced-motion:reduce){.blob{animation:none}}
 
@@ -68,10 +97,10 @@ header p{margin:2px 0 0;color:var(--ink2);}
   padding:12px 16px 190px;display:flex;flex-direction:column;gap:10px;align-content:flex-start;scrollbar-width:none}
 .page::-webkit-scrollbar{display:none}
 
-.item{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:24px;animation:pop .35s cubic-bezier(.2,.9,.3,1.2)}
+.item{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:24px;animation:pop var(--dur-pop) var(--ease-pop)}
 @keyframes pop{from{opacity:0;transform:scale(.94) translateY(6px)}}
 .check{flex:none;width:28px;height:28px;border-radius:50%;border:2px solid var(--c);
-  display:grid;place-items:center;transition:background .25s,transform .2s}
+  display:grid;place-items:center;transition:background var(--dur-check-bg),transform var(--dur-check-press)}
 .check:active{transform:scale(.88)}
 .item.done .check{background:var(--c)}
 .item.done .check::after{content:"";width:7px;height:12px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:translateY(-1px) rotate(45deg)}
@@ -102,7 +131,7 @@ header p{margin:2px 0 0;color:var(--ink2);}
 .tabs.drag .lens{--s:1.14}
 .tabs.drag{cursor:grabbing}
 .tab{position:relative;z-index:1;flex:1;min-width:0;padding:9px 0 7px;border-radius:999px;
-  color:var(--ink2);display:flex;flex-direction:column;align-items:center;gap:2px;transition:color .2s}
+  color:var(--ink2);display:flex;flex-direction:column;align-items:center;gap:2px;transition:color var(--dur-tab)}
 /* at a large OS text size "Upcoming" is wider than a quarter of the bar: the four labels then
    wrap inside their own tab instead of pushing the bar past the screen edge. At the default size
    every label already fits on one line, so nothing here is visible until the text is enlarged. */
@@ -114,10 +143,10 @@ header p{margin:2px 0 0;color:var(--ink2);}
 .tab i:empty{display:none}
 
 /* add sheet */
-.scrim{position:fixed;inset:0;z-index:8;background:rgba(10,10,30,.28);opacity:0;pointer-events:none;transition:opacity .3s}
+.scrim{position:fixed;inset:0;z-index:8;background:rgba(10,10,30,.28);opacity:0;pointer-events:none;transition:opacity var(--dur-scrim)}
 .scrim.open{opacity:1;pointer-events:auto}
 .sheet{position:fixed;left:50%;bottom:0;z-index:9;width:min(100%,560px);transform:translate(-50%,105%);
-  transition:transform .45s cubic-bezier(.2,.9,.25,1);border-radius:34px 34px 0 0;padding:20px 20px calc(24px + env(safe-area-inset-bottom,0px))}
+  transition:transform var(--dur-sheet-close) var(--ease-sheet-close);border-radius:34px 34px 0 0;padding:20px 20px calc(24px + env(safe-area-inset-bottom,0px))}
 .sheet.open{transform:translate(-50%,0)}
 .sheet h2{margin:0 0 14px;font-size:22px;font-weight:800;text-align:center}
 .field{width:100%;padding:14px 16px;margin-bottom:10px;border-radius:18px;border:1px solid var(--edge);
@@ -138,7 +167,7 @@ header p{margin:2px 0 0;color:var(--ink2);}
 
 /* in-app alert banner */
 .toast{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:50%;z-index:20;width:min(92vw,420px);
-  transform:translate(-50%,-160%);transition:transform .5s cubic-bezier(.2,.9,.25,1.1);padding:14px 18px;border-radius:26px}
+  transform:translate(-50%,-160%);transition:transform var(--dur-toast-in) var(--ease-toast-in);padding:14px 18px;border-radius:26px}
 .toast.show{transform:translate(-50%,0)}
 .toast b{display:block;font-size:15px}.toast span{font-size:14px;color:var(--ink2);font-weight:600}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px}
@@ -150,23 +179,23 @@ header p{margin:2px 0 0;color:var(--ink2);}
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
 .glass::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
   background:radial-gradient(170px circle at var(--mx,22%) var(--my,0%),rgba(255,255,255,.55),transparent 62%);
-  opacity:var(--lit,.5);transition:opacity .35s}
+  opacity:var(--lit,.5);transition:opacity var(--dur-lit)}
 /* keep the specular highlight on its own compositor layer while it moves: moving it repaints
    that layer alone instead of dirtying the card, so the card's backdrop-filter is not re-run
    on every pointermove. The class goes on with the first move and comes off once the fade-out
    has finished, so a card that is not animating pins no layer. */
 .glass.lit::after{will-change:opacity}
-.orb{position:absolute;border-radius:50%;animation:drift 18s ease-in-out infinite alternate;
+.orb{position:absolute;border-radius:50%;animation:drift var(--dur-drift) var(--ease-drift) infinite alternate;
   background:radial-gradient(circle at 30% 25%,rgba(255,255,255,.95),rgba(255,255,255,.18) 38%,rgba(255,255,255,.04) 72%);
   box-shadow:inset -8px -10px 24px rgba(255,255,255,.28),0 22px 40px rgba(30,20,90,.16)}
 .o1{width:92px;height:92px;left:10%;top:24%}
-.o2{width:56px;height:56px;right:12%;top:46%;animation-delay:-6s}
-.o3{width:124px;height:124px;left:56%;bottom:20%;animation-delay:-11s}
+.o2{width:56px;height:56px;right:12%;top:46%;animation-delay:var(--delay-orb-2)}
+.o3{width:124px;height:124px;left:56%;bottom:20%;animation-delay:var(--delay-orb-3)}
 @keyframes drift{to{transform:translate(34px,-56px) rotate(25deg)}}
 @media (prefers-reduced-motion:reduce){.orb{animation:none}}
 /* background motion parks while the app is backgrounded */
 html.paused .blob,html.paused .orb{animation-play-state:paused}
-.item{transition:transform .35s cubic-bezier(.2,1.5,.4,1)}
+.item{transition:transform var(--dur-item-tilt) var(--ease-item-tilt)}
 .item:active{transform:scale(.97)}
 .field{box-shadow:inset 0 2px 7px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.65)}
 .tab.on svg{filter:drop-shadow(0 0 6px rgba(10,132,255,.65))}
@@ -177,7 +206,7 @@ html.paused .blob,html.paused .orb{animation-play-state:paused}
   transform:translateX(calc(var(--p)*100%)) scale(calc(var(--s,1)*var(--sx,1)),calc(var(--s,1)*(2 - var(--sx,1))))}
 .lens::after{content:"";position:absolute;left:14%;right:14%;top:4px;height:38%;border-radius:999px;
   background:linear-gradient(180deg,rgba(255,255,255,.85),rgba(255,255,255,0))}
-.lens.settle{transition:transform .55s cubic-bezier(.3,1.7,.4,1)}
+.lens.settle{transition:transform var(--dur-lens-settle) var(--ease-lens-settle)}
 .tabs.drag .lens{background:linear-gradient(180deg,rgba(255,255,255,.36),rgba(255,255,255,.06))}
 .refract .lens{-webkit-backdrop-filter:url(#lg) blur(1px) saturate(230%) brightness(1.2);backdrop-filter:url(#lg) blur(1px) saturate(230%) brightness(1.2)}
 .refract .tabs.drag .lens{-webkit-backdrop-filter:url(#lg) saturate(250%) brightness(1.25);backdrop-filter:url(#lg) saturate(250%) brightness(1.25)}
@@ -264,14 +293,14 @@ body{padding-top:var(--sat,env(safe-area-inset-top,0px))!important;padding-botto
 .item{
   transform-style:preserve-3d;
   transform:translateZ(0) rotateX(0deg) rotateY(0deg) scale(1);
-  transition:transform .55s cubic-bezier(.16,1.45,.32,1),
-             box-shadow .55s cubic-bezier(.16,1.45,.32,1),
-             filter .3s ease;
+  transition:transform var(--dur-settle) var(--ease-settle),
+             box-shadow var(--dur-settle) var(--ease-settle),
+             filter var(--dur-item-filter) ease;
 }
 .item.press{
-  transition-duration:.13s;
-  transition-timing-function:cubic-bezier(.25,.9,.3,1);
-  transform:translateZ(calc(38px * var(--d))) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) scale(1.035);
+  transition-duration:var(--dur-press);
+  transition-timing-function:var(--ease-press);
+  transform:translateZ(calc(var(--lift-press) * var(--d))) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) scale(1.035);
   box-shadow:0 30px 52px rgba(30,20,90,.32),
              inset 0 1.5px 0 rgba(255,255,255,.95),
              inset 0 0 26px rgba(255,255,255,.28);
@@ -279,13 +308,13 @@ body{padding-top:var(--sat,env(safe-area-inset-top,0px))!important;padding-botto
   z-index:3;
 }
 @keyframes depthBounce{
-  0%  {transform:translateZ(calc(38px * var(--d))) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) scale(1.035)}
+  0%  {transform:translateZ(calc(var(--lift-press) * var(--d))) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) scale(1.035)}
   34% {transform:translateZ(calc(-10px * var(--d))) rotateX(calc(var(--rx,0deg) * -.45)) rotateY(calc(var(--ry,0deg) * -.45)) scale(.978)}
   58% {transform:translateZ(calc(17px * var(--d))) rotateX(calc(var(--rx,0deg) * .3)) rotateY(calc(var(--ry,0deg) * .3)) scale(1.014)}
   78% {transform:translateZ(calc(-4px * var(--d))) rotateX(calc(var(--rx,0deg) * -.12)) rotateY(calc(var(--ry,0deg) * -.12)) scale(.996)}
   100%{transform:translateZ(0) rotateX(0deg) rotateY(0deg) scale(1)}
 }
-.item.bounce{animation:depthBounce .68s cubic-bezier(.3,.85,.3,1) both}
+.item.bounce{animation:depthBounce var(--dur-depth-bounce) var(--ease-depth-bounce) both}
 
 /* cards fly in from depth, one after another */
 @keyframes cascadeIn{
@@ -294,30 +323,30 @@ body{padding-top:var(--sat,env(safe-area-inset-top,0px))!important;padding-botto
   78% {transform:translateZ(calc(-6px * var(--d))) translateY(1px) rotateX(.5deg) scale(.998)}
   100%{opacity:1;transform:translateZ(0) translateY(0) rotateX(0) scale(1)}
 }
-.item.cascade{animation:cascadeIn .62s cubic-bezier(.22,1.1,.32,1) both}
+.item.cascade{animation:cascadeIn var(--dur-cascade) var(--ease-cascade) both}
 
 /* the tick lands with its own little pop */
 @keyframes tickPop{
-  0%{transform:scale(.35)}
+  0%{transform:scale(var(--tick-from))}
   55%{transform:scale(1.3)}
   78%{transform:scale(.93)}
   100%{transform:scale(1)}
 }
-.item.done .check{animation:tickPop .5s cubic-bezier(.3,.9,.3,1)}
+.item.done .check{animation:tickPop var(--dur-tick) var(--ease-tick)}
 
 /* floating button: push away, spring back past rest */
 .dock{perspective:800px}
 .fab{transform:translateZ(0) scale(1);
-  transition:transform .5s cubic-bezier(.16,1.5,.3,1),box-shadow .5s cubic-bezier(.16,1.5,.3,1)}
-.fab.press{transform:translateZ(calc(-26px * var(--d))) scale(.9);transition-duration:.12s}
+  transition:transform var(--dur-fab-settle) var(--ease-fab-settle),box-shadow var(--dur-fab-settle) var(--ease-fab-settle)}
+.fab.press{transform:translateZ(calc(var(--push-fab) * var(--d))) scale(.9);transition-duration:var(--dur-fab-press)}
 @keyframes fabBounce{
-  0%  {transform:translateZ(calc(-26px * var(--d))) scale(.9)}
+  0%  {transform:translateZ(calc(var(--push-fab) * var(--d))) scale(.9)}
   40% {transform:translateZ(calc(34px * var(--d))) scale(1.13)}
   64% {transform:translateZ(calc(-7px * var(--d))) scale(.97)}
   84% {transform:translateZ(calc(9px * var(--d))) scale(1.02)}
   100%{transform:translateZ(0) scale(1)}
 }
-.fab.bounce{animation:fabBounce .62s cubic-bezier(.3,.9,.3,1) both}
+.fab.bounce{animation:fabBounce var(--dur-fab-bounce) var(--ease-tick) both}
 
 /* the lens dips into the bar and springs back up */
 .tabs{perspective:900px}
@@ -327,24 +356,24 @@ body{padding-top:var(--sat,env(safe-area-inset-top,0px))!important;padding-botto
   70% {transform:translateX(calc(var(--p) * 100%)) scale3d(.97,.92,1) translateZ(calc(-7px * var(--d)))}
   100%{transform:translateX(calc(var(--p) * 100%)) scale3d(1,1,1) translateZ(0)}
 }
-.lens.bounce{animation:lensBounce .58s cubic-bezier(.3,.9,.3,1) both}
+.lens.bounce{animation:lensBounce var(--dur-lens-bounce) var(--ease-tick) both}
 
 /* sheet and toast arrive from depth */
 .sheet{
   transform-origin:50% 100%;
   transform:perspective(1000px) translate(-50%,105%) rotateX(14deg) scale(.96);
-  transition:transform .6s cubic-bezier(.18,1.25,.32,1);
+  transition:transform var(--dur-sheet) var(--ease-sheet);
 }
 .sheet.open{transform:perspective(1000px) translate(-50%,0) rotateX(0deg) scale(1)}
 .toast{transform:perspective(800px) translate(-50%,-160%) rotateX(-25deg) scale(.92);
-  transition:transform .55s cubic-bezier(.18,1.4,.32,1)}
+  transition:transform var(--dur-toast) var(--ease-toast)}
 .toast.show{transform:perspective(800px) translate(-50%,0) rotateX(0deg) scale(1)}
 
 @media (prefers-reduced-motion:reduce){
   .item.press{transform:none;box-shadow:none;filter:none}
   .item.bounce,.item.cascade,.fab.press,.fab.bounce,.lens.bounce,.item.done .check{animation:none!important}
   .fab{transition:none}
-  .sheet,.toast{transition:transform .18s linear}
+  .sheet,.toast{transition:transform var(--dur-reduced) linear}
 }
 
 /* ============================================================
@@ -400,9 +429,9 @@ header{position:relative}
 .range::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:#fff;border:0;
   box-shadow:0 2px 9px rgba(30,20,90,.38)}
 .switch{width:56px;height:32px;border-radius:999px;background:rgba(120,120,140,.38);
-  border:1px solid var(--edge);position:relative;padding:0;flex:none;transition:background .25s}
+  border:1px solid var(--edge);position:relative;padding:0;flex:none;transition:background var(--dur-switch-bg)}
 .switch i{position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;
-  box-shadow:0 2px 6px rgba(0,0,0,.25);transition:transform .32s cubic-bezier(.2,1.4,.3,1)}
+  box-shadow:0 2px 6px rgba(0,0,0,.25);transition:transform var(--dur-switch-knob) var(--ease-switch-knob)}
 .switch.on{background:var(--accent)}
 .switch.on i{transform:translateX(24px)}
 .hint{margin:14px 2px 0;font-size:13.5px;font-weight:600;color:var(--ink2);line-height:1.4}
