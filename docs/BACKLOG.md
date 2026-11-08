@@ -84,7 +84,7 @@ installable build roughly twice a day. Items marked **[release]** cut one regard
 - [x] Single source of truth for the colour palette (it is currently duplicated in JS and CSS)
 - [x] Name the magic numbers in the animation CSS
 - [x] Document the bridge contract in a comment block at the top of the file
-- [ ] Split the settings defaults into one object
+- [x] Split the settings defaults into one object
 - [ ] Remove dead branches left from earlier design passes
 - [ ] Keep the README in sync with any behaviour change
 
@@ -93,6 +93,8 @@ installable build roughly twice a day. Items marked **[release]** cut one regard
 ## Done
 
 _(each run appends one line here)_
+
+- **8 Nov, run 20** — the settings defaults now live in one object. `100 / 70 / on` was typed twice, once to build the starting state and once again inside the Reset handler, so changing a default meant remembering both copies. The parallax/settings script now declares a single `DEFAULTS` object with the three values, a `defaultState()` helper that copies it, and both the first-run state and Reset go through that helper — Reset still gets a fresh object, never the shared one, so the sliders cannot mutate the defaults. No markup, CSS, wording or behaviour changed. Verified in headless Chromium before and after: no console errors, page errors or failed requests, the alarm bridge still called on load, first run at 100 %/70 %/tilt on, changes to 130 %/40 %/off persisted across a reload, and Reset restored 100 %/70 %/on — with the frozen 412x915 render of both the main screen and the settings sheet pixel-for-pixel identical. `./build.sh` produced the signed APK with the same certificate.
 
 - **7 Nov, run 18** — the motion numbers now have names. Every duration, easing curve and negative delay the animations spend was typed straight into the rule that used it, so `cubic-bezier(.3,.9,.3,1)` appeared four times and the blob/orb delays were bare `-8s`, `-14s`, `-6s`, `-11s` with nothing saying what they were. `:root` now declares one motion block (`--dur-pop`, `--ease-pop`, `--delay-blob-2`, `--lift-press` and so on) and the animation, transition and keyframe rules read their timing from it; the two keyframe values that are also used by a rule of their own — the 38 px card lift and the −26 px FAB push — are now one variable each instead of two copies. Values are unchanged character for character, so nothing looks or moves differently, and no dependency, class or markup was touched. Verified in headless Chromium before and after: no console or page errors, every computed animation and transition property identical on 28 selectors, all thirteen animations sampled at nine progress points each with identical transforms, opacity, box-shadow and filter, and the frozen 412×892 render pixel-for-pixel identical. `./build.sh` produced the signed APK with the same certificate.
 

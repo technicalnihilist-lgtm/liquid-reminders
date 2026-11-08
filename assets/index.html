@@ -1385,7 +1385,13 @@ window.LiquidBack=closeTopSheet;
 (function(){
   var root = document.documentElement;
   var KEY = 'liquid.settings.v1';
-  var st = { depth: 100, par: 70, tilt: true };
+  /* one source of truth for the settings defaults: the first-run state and the
+     Reset button both copy this, so the two can never drift apart */
+  var DEFAULTS = { depth: 100, par: 70, tilt: true };
+  function defaultState(){
+    return { depth: DEFAULTS.depth, par: DEFAULTS.par, tilt: DEFAULTS.tilt };
+  }
+  var st = defaultState();
 
   try{
     var saved = JSON.parse(localStorage.getItem(KEY) || 'null');
@@ -1508,7 +1514,7 @@ window.LiquidBack=closeTopSheet;
     tx = ty = 0; kick();
   });
   document.getElementById('s-reset').addEventListener('click', function(){
-    st = { depth: 100, par: 70, tilt: true };
+    st = defaultState();
     paint(); apply(); save(); tx = ty = 0; kick();
   });
 })();
