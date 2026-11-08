@@ -797,6 +797,12 @@ window.LiquidBack=closeTopSheet;
      through the list, "Mark done" alone said nothing about which reminder it was. The same
      button completes and reopens a reminder, so the verb follows the current state. */
   function checkLabel(it){return (it.done?"Mark not done: ":"Mark done: ")+it.title}
+  /* the delete button sits right beside the check button and carried the same fixed words on
+     every card, so a rotor or a swipe that reached it heard "Delete reminder" four times over
+     with no way to tell which one it would remove — the same complaint the check button had
+     before its label took the title. It takes the title the same way; the verb never follows
+     the state, because deleting does the same thing to a done reminder as to an open one. */
+  function delLabel(it){return "Delete reminder: "+it.title}
   /* build one card as DOM nodes, so nothing is parsed back out of a string */
   function card(it){
     var late=!it.done&&it.due&&it.due<Date.now();
@@ -812,7 +818,7 @@ window.LiquidBack=closeTopSheet;
     if(it.due){var s=fmt(it.due);if(s){var t=document.createElement("small");t.className=late?"late":"";t.textContent=s;txt.appendChild(t)}}
     if(it.notes){var n=document.createElement("small");n.textContent=it.notes;txt.appendChild(n)}
     var del=document.createElement("button");
-    del.className="del";del.dataset.a="del";del.setAttribute("aria-label","Delete reminder");del.textContent="×";
+    del.className="del";del.dataset.a="del";del.setAttribute("aria-label",delLabel(it));del.textContent="×";
     el.appendChild(chk);el.appendChild(txt);el.appendChild(del);
     return el;
   }
