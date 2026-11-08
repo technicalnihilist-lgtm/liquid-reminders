@@ -86,7 +86,7 @@ installable build roughly twice a day. Items marked **[release]** cut one regard
 - [x] Document the bridge contract in a comment block at the top of the file
 - [x] Split the settings defaults into one object
 - [x] Remove dead branches left from earlier design passes
-- [ ] Keep the README in sync with any behaviour change
+- [x] Keep the README in sync with any behaviour change
 
 ---
 

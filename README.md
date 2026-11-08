@@ -4,7 +4,7 @@
   <a href="../../releases/latest"><img src="https://img.shields.io/github/v/release/technicalnihilist-lgtm/liquid-reminders" alt="Latest release"></a>
   <img src="https://img.shields.io/badge/licence-MIT-blue" alt="MIT licence">
   <img src="https://img.shields.io/badge/platform-Android%207.0%2B-3ddc84" alt="Android 7.0+">
-  <img src="https://img.shields.io/badge/APK-50%20KB-lightgrey" alt="APK size">
+  <img src="https://img.shields.io/badge/APK-58%20KB-lightgrey" alt="APK size">
   <img src="https://img.shields.io/badge/dependencies-none-brightgreen" alt="No dependencies">
 </p>
 
@@ -29,6 +29,10 @@ reboots.
 Captured from the app itself at 390×844 @2x — the same `assets/index.html` that ships inside the
 APK, with sample data. The red timestamp on "Pick up dry cleaning" is the overdue state, and the
 "3" badge on the Today tab counts what is still due today.
+
+The app reopens on the tab you last settled on — Today, Upcoming, All or Done — instead of
+sliding back to Today each launch: that index is stored beside the list and read back once the
+pager has a width.
 
 ## Motion
 
@@ -90,6 +94,7 @@ The HTML design already worked in a browser. These are the pieces that make it a
 | Alarms are lost on reboot | `BootReceiver` re-arms every pending reminder on `BOOT_COMPLETED` and after app updates |
 | `localStorage` only | Same storage, but the reminder list is mirrored to `SharedPreferences` so the alarm scheduler can read it without the page |
 | No safe-area insets in a WebView | `MainActivity` measures the status/navigation/IME insets and feeds them to CSS as `--sat` / `--sab` |
+| A refused notification makes a due reminder look forgotten | Once the permission answer is known the shell tells the page, which says so in its own toast — once per install |
 
 The JS layer talks to native code through a small bridge exposed as `window.AndroidBridge`:
 
@@ -98,10 +103,14 @@ BR.schedule(id, title, notes, dueMillis)   // register one alarm
 BR.cancel(id)                              // drop one alarm
 BR.resync(json)                            // rebuild all alarms from the current list
 BR.askNotifications()                      // request POST_NOTIFICATIONS on Android 13+
+BR.now()                                   // the device clock, in milliseconds
 ```
 
 `syncAll()` in the page calls `resync` after every add, toggle or delete, so the native
-schedule always mirrors what is on screen.
+schedule always mirrors what is on screen. The shell keeps a signature of the last list it
+synced and skips the rebuild when a new one is identical, so opening the app costs no alarm
+work. Only `resync` and `askNotifications` are called today; `schedule` and `cancel` stay part
+of the interface but the page hands over the whole list instead.
 
 ## Project layout
 
