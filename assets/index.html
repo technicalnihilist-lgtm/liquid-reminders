@@ -512,7 +512,7 @@ header{position:relative}
   <button class="fab glass" id="fab" aria-label="New reminder">+</button>
   <nav class="tabs glass" id="tabs" aria-label="Sections">
     <div class="lens"></div>
-    <button class="tab on" data-i="0"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>Today<i id="n0"></i></button>
+    <button class="tab on" data-i="0" aria-current="page"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>Today<i id="n0"></i></button>
     <button class="tab" data-i="1"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Upcoming</button>
     <button class="tab" data-i="2"><svg viewBox="0 0 24 24"><path d="M8 6.5h12M8 12h12M8 17.5h12M4 6.5h.01M4 12h.01M4 17.5h.01"/></svg>All</button>
     <button class="tab" data-i="3"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="m8.5 12.3 2.4 2.4 4.6-5"/></svg>Done</button>
@@ -945,7 +945,14 @@ window.LiquidBack=closeTopSheet;
     clearTimeout(st);st=setTimeout(function(){tabs.style.setProperty("--sx",1);lens.classList.add("settle")},70);
     var r=Math.round(p);
     if(r!==lastIdx||!tabEls[r].classList.contains("on")){
-      lastIdx=r; tabEls.forEach(function(t,i){t.classList.toggle("on",i===r)});
+      /* the highlighted tab is a colour and a scale on screen and nothing else to a screen
+         reader, so the section the pager has settled on is named as the current one too —
+         read out in the bar it says which page is showing, instead of four buttons with no
+         state between them */
+      lastIdx=r; tabEls.forEach(function(t,i){
+        t.classList.toggle("on",i===r);
+        t.setAttribute("aria-current",i===r?"page":"false");
+      });
       $("#title").textContent=TITLES[r];
       if(restored)saveTab(r);
     }
