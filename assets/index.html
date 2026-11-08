@@ -1,4 +1,60 @@
 <!DOCTYPE html>
+<!--
+  THE BRIDGE CONTRACT
+  ===================
+  This file is the whole interface, and the native shell's only way in. In the app,
+  MainActivity (java/com/liquid/reminders/MainActivity.java) attaches a JavascriptInterface
+  named "AndroidBridge", implemented by its inner Bridge class; in a plain browser
+  window.AndroidBridge is undefined, every call to it is guarded, and the page runs on its own
+  with the list in localStorage. Nothing here is required for the page to draw.
+
+  PAGE -> NATIVE   (window.AndroidBridge, present only inside the app)
+
+    schedule(id, title, notes, dueMillis)
+        Register one exact alarm for one reminder. dueMillis is milliseconds since the epoch,
+        0 meaning "no date", which never fires. The shell replaces any existing alarm for the
+        same id.
+
+    cancel(id)
+        Drop the alarm held for one reminder id.
+
+    resync(json)
+        The whole list at once, as a JSON array of {id, title, notes, due, done}. The shell
+        rebuilds every alarm from the array, so a reminder missing from it loses its alarm.
+        The page calls this from syncAll() after every add, toggle and delete, and it is what
+        keeps the native store and the alarm schedule in step with what is on screen.
+
+    askNotifications()
+        Ask for POST_NOTIFICATIONS on Android 13 and newer; a no-op below that, and a no-op
+        once the question has been answered.
+
+    now() -> long
+        The device clock, in milliseconds since the epoch.
+
+    Only resync() and askNotifications() are called today: the page hands over the whole list
+    rather than scheduling one reminder at a time, so schedule() and cancel() stay part of the
+    interface but are not used by this file.
+
+  NATIVE -> PAGE   (globals and CSS custom properties the shell sets on this document)
+
+    window.LiquidBack() -> boolean
+        Called when the Android Back button is pressed. Closes whichever sheet is open (Add or
+        Settings) by clicking its own dismiss control, and returns true only if it closed one.
+        A false answer is the shell's cue to leave the app.
+
+    window.LiquidNotifyHint()
+        Called once the notification permission answer is known, when notifications are
+        refused, so the page can say so in its own toast. It shows once per install and then
+        does nothing.
+
+    --sat and --sab   (CSS px, set on document.documentElement)
+        Status bar and navigation/IME insets, re-measured by the shell on every inset change.
+        The layout reads them as var(--sat, env(safe-area-inset-top, 0px)) and the matching
+        --sab, so the same rules still hold in a browser with no shell.
+
+  Keep this file self-contained: no other asset is loaded, nothing is fetched over a network,
+  and the names above are the entire surface either side may rely on.
+-->
 <html lang="en">
 <head>
 <meta charset="utf-8">
