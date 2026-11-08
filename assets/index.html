@@ -109,10 +109,6 @@ var __tBoot=(window.performance&&performance.now)?performance.now():0;</script>
     --bg1:#6a2a6e; --bg2:#1f3b9c; --bg3:#0b6a6a; --bg4:#8a4a1c;
   }
 }
-:root[data-theme="dark"]{
-  --edge:rgba(255,255,255,.38); --shade:rgba(0,0,0,.45);
-  --bg1:#6a2a6e; --bg2:#1f3b9c; --bg3:#0b6a6a; --bg4:#8a4a1c;
-}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;margin:0}
 /* the shell already renders the page at the user's OS text size (WebView text zoom follows the
@@ -164,7 +160,6 @@ header p{margin:2px 0 0;color:var(--ink2);}
 .txt b{display:block;font-size:17px;overflow-wrap:anywhere}
 .item.done .txt b{text-decoration:line-through;opacity:.5}
 .txt small{display:block;margin-top:2px;color:var(--ink2);overflow-wrap:anywhere}
-.txt small.late{}
 .del{flex:none;width:34px;height:34px;border-radius:50%;line-height:1;position:relative}
 /* the circle stays 34px, but an invisible 44px square sits around it, so the
    touch target clears the 44px minimum without moving or resizing anything */
@@ -193,7 +188,6 @@ header p{margin:2px 0 0;color:var(--ink2);}
    every label already fits on one line, so nothing here is visible until the text is enlarged. */
 .tab{overflow-wrap:anywhere}
 .tab svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-.tab.on{}
 .tab i{position:absolute;top:4px;right:calc(50% - 22px);min-width:17px;height:17px;border-radius:9px;background:var(--danger);
   color:#fff;font:700 10.5px/17px var(--font);text-align:center;font-style:normal;padding:0 4px}
 .tab i:empty{display:none}
@@ -283,7 +277,6 @@ html.paused .blob,html.paused .orb{animation-play-state:paused}
 /* ---- fully clear glass ---- */
 :root{--g1:rgba(255,255,255,.07);--g2:rgba(255,255,255,0)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--g1:rgba(255,255,255,.05);--g2:rgba(255,255,255,0)}}
-:root[data-theme="dark"]{--g1:rgba(255,255,255,.05);--g2:rgba(255,255,255,0)}
 .glass{-webkit-backdrop-filter:blur(.6px) saturate(140%) brightness(1.06);backdrop-filter:blur(.6px) saturate(140%) brightness(1.06);
   border-color:rgba(255,255,255,.7);
   box-shadow:inset 0 1.5px 0 rgba(255,255,255,.9),inset 0 -1px 0 rgba(255,255,255,.35),
@@ -303,8 +296,6 @@ html.paused .blob,html.paused .orb{animation-play-state:paused}
   --halo:0 0 2px rgba(255,255,255,.95),0 0 6px rgba(255,255,255,.9),0 0 14px rgba(255,255,255,.7),0 0 26px rgba(255,255,255,.4)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#ffffff;--ink2:rgba(255,255,255,.9);--late:#ff7a72;
   --halo:0 0 2px rgba(0,0,0,.95),0 0 6px rgba(0,0,0,.85),0 0 14px rgba(0,0,0,.6),0 0 26px rgba(0,0,0,.35)}}
-:root[data-theme="dark"]{--ink:#ffffff;--ink2:rgba(255,255,255,.9);--late:#ff7a72;
-  --halo:0 0 2px rgba(0,0,0,.95),0 0 6px rgba(0,0,0,.85),0 0 14px rgba(0,0,0,.6),0 0 26px rgba(0,0,0,.35)}
 body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 header h1{font-size:38px;font-weight:900;letter-spacing:-.5px}
 header p{font-size:16px;font-weight:700}
