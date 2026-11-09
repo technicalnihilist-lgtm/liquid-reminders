@@ -977,7 +977,17 @@ window.LiquidBack=closeTopSheet;
     }
     roving(r);
   }
-  pages.addEventListener("scroll",function(){requestAnimationFrame(sync)},{passive:true});
+  /* a fling fires far more scroll events than there are frames, and every one of them queued
+     its own requestAnimationFrame(sync): sync() ran several times inside a single frame, and
+     each extra run wrote the same custom properties again and re-read the settled tab. One
+     frame is one sync now — the first event of a frame claims the slot and the rest ride on
+     it, the way the specular handler below already works. */
+  var scrollPending=false;
+  pages.addEventListener("scroll",function(){
+    if(scrollPending)return;
+    scrollPending=true;
+    requestAnimationFrame(function(){scrollPending=false;sync()});
+  },{passive:true});
   function goto(i){pages.scrollTo({left:i*pages.clientWidth,behavior:"smooth"})}
 
   /* the bar is one Tab stop, not four: the active tab holds the tab order and the arrows
