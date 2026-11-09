@@ -499,7 +499,7 @@ header{position:relative}
 <div class="bg"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div></div>
 
 <div class="app">
-  <header><h1 id="title">Today</h1><p id="sub"></p><button class="gear glass" id="gear" aria-label="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1-1.56V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9a1.7 1.7 0 0 0 1.56 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z"/></svg></button></header>
+  <header><h1 id="title">Today</h1><p id="sub"></p><button class="gear glass" id="gear" aria-label="Settings" aria-controls="settings" aria-expanded="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1-1.56V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9a1.7 1.7 0 0 0 1.56 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1z"/></svg></button></header>
   <main class="pages" id="pages">
     <section class="page" id="p0"></section>
     <section class="page" id="p1"></section>
@@ -509,7 +509,7 @@ header{position:relative}
 </div>
 
 <div class="dock">
-  <button class="fab glass" id="fab" aria-label="New reminder">+</button>
+  <button class="fab glass" id="fab" aria-label="New reminder" aria-controls="sheet" aria-expanded="false">+</button>
   <nav class="tabs glass" id="tabs" aria-label="Sections">
     <div class="lens"></div>
     <button class="tab on" data-i="0" aria-current="page"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>Today<i id="n0"></i></button>
@@ -520,8 +520,8 @@ header{position:relative}
 </div>
 
 <div class="scrim" id="scrim"></div>
-<form class="sheet glass" id="sheet" onsubmit="return false">
-  <h2>New reminder</h2>
+<form class="sheet glass" id="sheet" aria-hidden="true" aria-labelledby="sheet-title" onsubmit="return false">
+  <h2 id="sheet-title">New reminder</h2>
   <input class="field" id="f-title" placeholder="What do you need to remember?" maxlength="120" autocomplete="off">
   <input class="field" id="f-notes" placeholder="Notes (optional)" maxlength="200" autocomplete="off">
   <input class="field" id="f-due" type="datetime-local" aria-label="Date and time">
@@ -530,8 +530,8 @@ header{position:relative}
 </form>
 
 
-<form class="sheet glass" id="settings" onsubmit="return false">
-  <h2>Settings</h2>
+<form class="sheet glass" id="settings" aria-hidden="true" aria-labelledby="settings-title" onsubmit="return false">
+  <h2 id="settings-title">Settings</h2>
   <div class="set-row"><label for="s-depth">Depth</label><output id="o-depth">100%</output></div>
   <input class="range" id="s-depth" type="range" min="0" max="150" step="5" value="100" aria-label="Depth">
   <div class="set-row"><label for="s-par">Parallax</label><output id="o-par">70%</output></div>
@@ -561,10 +561,22 @@ var SHEET_TRAP=(function(){
       return !!(n.offsetWidth||n.offsetHeight||n.getClientRects().length);
     });
   }
+  /* the two sheets are always in the document, parked off the bottom of the screen by a
+     transform, so nothing stops a screen reader reaching them while they are closed: each
+     one is hidden from the accessibility tree until it is opened, and while it is open it
+     says it is a dialog that owns the screen. The buttons that open them carry aria-controls
+     and report whether their sheet is up, so the trigger and the sheet agree. */
+  function triggers(){ return [].slice.call(document.querySelectorAll("[aria-controls]")); }
   function start(el){
     if(!el||held===el)return;
     if(held)end(held);
     held=el;back=document.activeElement;
+    el.setAttribute("role","dialog");
+    el.setAttribute("aria-modal","true");
+    el.removeAttribute("aria-hidden");
+    triggers().forEach(function(b){
+      b.setAttribute("aria-expanded", b.getAttribute("aria-controls")===el.id?"true":"false");
+    });
   }
   function end(el){
     if(!el||held!==el)return;
@@ -573,6 +585,13 @@ var SHEET_TRAP=(function(){
     try{
       if(to&&to!==document.body&&typeof to.focus==="function"&&document.contains(to))to.focus();
     }catch(e){}
+    /* a sheet closed by its own button still holds the focus that button had: drop it before
+       hiding the sheet, or the browser refuses the aria-hidden and says so in the console */
+    try{ if(el.contains(document.activeElement))document.activeElement.blur(); }catch(e){}
+    el.removeAttribute("role");
+    el.removeAttribute("aria-modal");
+    el.setAttribute("aria-hidden","true");
+    triggers().forEach(function(b){ b.setAttribute("aria-expanded","false"); });
   }
   document.addEventListener("keydown",function(e){
     if(e.key!=="Tab"||!held)return;
