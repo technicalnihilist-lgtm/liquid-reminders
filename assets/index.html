@@ -1397,16 +1397,40 @@ window.LiquidBack=closeTopSheet;
   }
   var st = defaultState();
 
+  /* a stored setting is only kept if the slider it belongs to can hold it. The range of each
+     slider is written once, as min/max/step in the markup, so the bounds are read off the input
+     itself rather than typed again here — the same rule the palette follows. A value that is not
+     a finite number, or one a hand-edited store puts outside the range, becomes the default; one
+     inside the range but between two steps is snapped to the step the slider shows, so what is
+     applied, what the slider holds and the percentage printed beside it always agree. Without
+     this a stored depth of 5000 applied `--d:50` and lifted every card fifty times as far as the
+     interface was built for, while the slider beside it read 150 and the readout said 5000%. */
+  function keep(v,id,fallback){
+    var n=(typeof v==="number"&&isFinite(v))?v:fallback;
+    var el=document.getElementById(id);
+    if(!el) return n;
+    var lo=parseFloat(el.min), hi=parseFloat(el.max), step=parseFloat(el.step);
+    if(!isFinite(lo)||!isFinite(hi)||hi<lo) return n;
+    if(n<lo) n=lo; else if(n>hi) n=hi;
+    if(isFinite(step)&&step>0) n=lo+Math.round((n-lo)/step)*step;
+    return Math.min(hi,Math.max(lo,n));
+  }
+  var repaired=false;
   try{
     var saved = JSON.parse(localStorage.getItem(KEY) || 'null');
     if(saved && typeof saved === 'object'){
-      if(typeof saved.depth === 'number') st.depth = saved.depth;
-      if(typeof saved.par   === 'number') st.par   = saved.par;
-      if(typeof saved.tilt  === 'boolean') st.tilt = saved.tilt;
+      var d=keep(saved.depth,'s-depth',DEFAULTS.depth), p=keep(saved.par,'s-par',DEFAULTS.par);
+      if(saved.depth!==undefined && d!==saved.depth) repaired=true;
+      if(saved.par!==undefined   && p!==saved.par)   repaired=true;
+      st.depth=d; st.par=p;
+      if(typeof saved.tilt === 'boolean') st.tilt = saved.tilt;
     }
   }catch(e){}
 
   function save(){ try{ localStorage.setItem(KEY, JSON.stringify(st)); }catch(e){} }
+  /* the repaired settings are written back, like the list repairs on the other side of the page,
+     so the store says what the sliders show and a later run reads a value it can keep */
+  if(repaired) save();
 
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
