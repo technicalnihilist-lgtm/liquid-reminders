@@ -1061,11 +1061,24 @@ window.LiquidBack=closeTopSheet;
     sheet.classList.add("open");scrim.classList.add("open");SHEET_TRAP.start(sheet);setTimeout(function(){ft.focus()},350);
     askNotify();
   }
-  function closeSheet(){sheet.classList.remove("open");scrim.classList.remove("open");document.activeElement.blur();SHEET_TRAP.end(sheet)}
+  /* closing is only closing while the sheet is up. The Escape handler below listens on the
+     document, so it fired for every Escape on the page — with no sheet open it still ran
+     closeSheet(), which blurs document.activeElement unconditionally, and a keyboard user
+     who pressed Escape while sitting on a tab or a check button had the focus taken off it
+     and dropped on the body, with the tab order starting again from the top. The scrim is
+     shared with the settings sheet too, so a tap on it ran this close as well as that one.
+     Each sheet now acts only for itself, and the blur only reaches a control inside this
+     sheet — the same guard SHEET_TRAP.end() already applies before it hides the sheet. */
+  function closeSheet(){
+    if(!sheet.classList.contains("open"))return;
+    sheet.classList.remove("open");scrim.classList.remove("open");
+    try{ if(sheet.contains(document.activeElement))document.activeElement.blur(); }catch(e){}
+    SHEET_TRAP.end(sheet);
+  }
   $("#fab").onclick=openSheet;$("#cancel").onclick=closeSheet;scrim.onclick=closeSheet;
   ft.addEventListener("input",function(){save.disabled=!titleOf(ft.value)});
   ft.addEventListener("keydown",function(e){if(e.key==="Enter"&&!save.disabled)save.click()});
-  document.addEventListener("keydown",function(e){if(e.key==="Escape")closeSheet()});
+  document.addEventListener("keydown",function(e){if(e.key==="Escape"&&sheet.classList.contains("open"))closeSheet()});
   save.onclick=function(){
     /* nothing to save: the sheet stays open and the field keeps the focus, rather than a card
        being written with a blank title */
@@ -1537,7 +1550,12 @@ window.LiquidBack=closeTopSheet;
     scrim.classList.add('open');
     SHEET_TRAP.start(sheet);
   }
+  /* as with the add sheet, this one only closes while it is the sheet that is up: its Escape
+     handler is on the document and its scrim is the shared one, so an Escape pressed with
+     nothing open used to run this and pull the scrim out from under whichever sheet was
+     actually up */
   function close(){
+    if(!sheet.classList.contains('open')) return;
     sheet.classList.remove('open');
     scrim.classList.remove('open');
     SHEET_TRAP.end(sheet);
