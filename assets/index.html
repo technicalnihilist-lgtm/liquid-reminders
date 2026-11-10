@@ -1012,23 +1012,34 @@ window.LiquidBack=closeTopSheet;
   roving(lastIdx);
 
   /* drag a finger across the bar and the lens (and pages) follow */
-  var startX=0,moved=false;
+  /* the bar cannot move or resize while a finger is on it, so its box and the page width are
+     measured once at pointerdown and reused for the whole drag: every move used to call
+     getBoundingClientRect() and read pages.clientWidth straight after writing scrollLeft, which
+     is a forced layout per event. A move now only records the x it will land on, and the write
+     happens once per frame, the way the specular handler already works. */
+  var startX=0,moved=false,dragRect=null,dragW=0,dragPending=false,dragX=0;
   function idxFromX(x){
-    var r=tabs.getBoundingClientRect(), tw=(r.width-12)/4;
+    var r=dragRect||tabs.getBoundingClientRect(), tw=(r.width-12)/4;
     return Math.max(0,Math.min(3,(x-r.left-6)/tw-.5));
   }
+  function dragTo(x){pages.scrollLeft=idxFromX(x)*(dragW||pageW||pages.clientWidth)}
   tabs.addEventListener("pointerdown",function(e){
     dragging=true;moved=false;startX=e.clientX;tabs.setPointerCapture(e.pointerId);
+    dragRect=tabs.getBoundingClientRect();dragW=pageW||pages.clientWidth;
     tabs.classList.add("drag");pages.style.scrollSnapType="none";
-    pages.scrollLeft=idxFromX(e.clientX)*pages.clientWidth; // jump lens under finger
+    dragTo(e.clientX); // jump lens under finger
   });
   tabs.addEventListener("pointermove",function(e){
     if(!dragging)return; if(Math.abs(e.clientX-startX)>4)moved=true;
-    pages.scrollLeft=idxFromX(e.clientX)*pages.clientWidth;
+    dragX=e.clientX;
+    if(dragPending)return;
+    dragPending=true;
+    requestAnimationFrame(function(){dragPending=false;if(dragging)dragTo(dragX)});
   });
   function end(e){
     if(!dragging)return; dragging=false; tabs.classList.remove("drag");
     var i=Math.round(idxFromX(e.clientX));
+    dragRect=null;dragW=0;
     pages.style.scrollSnapType=""; goto(i);
   }
   tabs.addEventListener("pointerup",end);
