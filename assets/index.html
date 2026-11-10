@@ -1469,7 +1469,30 @@ window.LiquidBack=closeTopSheet;
     }
   }catch(e){}
 
-  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(st)); }catch(e){} }
+  /* dragging a slider fires an input event per frame, and every one of them wrote the whole
+     settings object to the store on the spot: one pass across the Depth slider cost sixty
+     synchronous writes, on the same thread that is trying to keep the drag smooth. Writes are
+     coalesced now — the first lands at once and the rest ride a single timer that writes
+     whatever the sliders hold when it runs, so a drag costs a couple of writes instead of one
+     per frame and the store still ends on the value the finger stopped at. The change event
+     that ends a drag, the Tilt and Reset buttons and a page being hidden all flush at once. */
+  var SAVE_EVERY=120, saveT=0, unsaved=false;
+  function writeSettings(){ try{ localStorage.setItem(KEY, JSON.stringify(st)); }catch(e){} }
+  function flushSettings(){
+    if(saveT){clearTimeout(saveT);saveT=0}
+    if(!unsaved)return;
+    unsaved=false;
+    writeSettings();
+  }
+  function save(){
+    unsaved=true;
+    if(saveT)return;   /* a write is already queued and will pick up the latest values */
+    flushSettings();
+    saveT=setTimeout(flushSettings,SAVE_EVERY);
+  }
+  /* a drag cut short by the app going away still writes what the sliders hold */
+  window.addEventListener("pagehide",flushSettings);
+  document.addEventListener("visibilitychange",function(){ if(document.hidden) flushSettings(); });
   /* the repaired settings are written back, like the list repairs on the other side of the page,
      so the store says what the sliders show and a later run reads a value it can keep */
   if(repaired) save();
@@ -1584,6 +1607,9 @@ window.LiquidBack=closeTopSheet;
     st.par = +par.value; oPar.textContent = st.par + '%';
     par.setAttribute('aria-valuetext', st.par + '%'); apply(); save();
   });
+  /* the change event marks the end of a drag: the trailing write goes now, not a beat later */
+  depth.addEventListener('change', flushSettings);
+  par.addEventListener('change', flushSettings);
   tiltBtn.addEventListener('click', function(){
     st.tilt = !st.tilt; paint(); apply(); save();
     tx = ty = 0; kick();
