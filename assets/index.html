@@ -877,10 +877,24 @@ window.LiquidBack=closeTopSheet;
   function itemKids(page){
     return [].filter.call(page.children,function(n){return n.classList&&n.classList.contains("item")});
   }
-  function placeOnPage(page,i,order,it){
-    var kids=itemKids(page), node=null, empty=null, pos=-1, k;
-    for(k=0;k<order.length;k++) if(order[k].id===it.id){pos=k;break}
-    for(k=0;k<kids.length;k++) if(+kids[k].dataset.id===it.id){node=kids[k];break}
+  /* where every reminder sits on a page, and which card already carries it, read once for the
+     whole move. Both used to be found by scanning: the position by walking the page order, the
+     card by walking the page's children, and then the card that follows was found by walking
+     the children again and, for each one, walking the whole page order — so placing one card
+     cost a walk of the order for every card on the page, quadratic in the list, on the one
+     action the app is used for most. Both maps are built in a single pass here and then
+     consulted, and the walk for the card that follows stays one pass in document order, which
+     is the card the old nested scan returned too. */
+  function pageIndex(order,page){
+    var posOf={}, nodeOf={}, kids=itemKids(page), k;
+    for(k=0;k<order.length;k++) posOf[order[k].id]=k;
+    for(k=0;k<kids.length;k++) nodeOf[+kids[k].dataset.id]=kids[k];
+    return {pos:posOf,nodes:nodeOf};
+  }
+  function placeOnPage(page,i,idx,it){
+    var pos=idx.pos.hasOwnProperty(it.id)?idx.pos[it.id]:-1;
+    var node=idx.nodes.hasOwnProperty(it.id)?idx.nodes[it.id]:null;
+    var empty=null, k;
     for(k=0;k<page.children.length;k++) if(page.children[k].classList.contains("empty")){empty=page.children[k];break}
     if(pos<0){
       if(!node) return;                       /* this page never showed it: nothing to do */
@@ -899,18 +913,19 @@ window.LiquidBack=closeTopSheet;
       }
     }
     if(empty) page.removeChild(empty);
-    var next=null;
+    var next=null, kids=itemKids(page);
     for(k=0;k<kids.length;k++){
-      var n=kids[k], p=-1;
+      var n=kids[k], p;
       if(n===node) continue;
-      for(var j=0;j<order.length;j++) if(order[j].id===+n.dataset.id){p=j;break}
+      p=idx.pos.hasOwnProperty(+n.dataset.id)?idx.pos[+n.dataset.id]:-1;
       if(p>pos){next=n;break}
     }
     if(next) page.insertBefore(node,next); else page.appendChild(node);
   }
   function moveCard(it){
-    var b=board();
-    for(var i=0;i<4;i++) placeOnPage($("#p"+i),i,b.pages[i],it);
+    var b=board(), idx=[], i;
+    for(i=0;i<4;i++) idx.push(pageIndex(b.pages[i],$("#p"+i)));
+    for(i=0;i<4;i++) placeOnPage($("#p"+i),i,idx[i],it);
     counts(b);
   }
 
