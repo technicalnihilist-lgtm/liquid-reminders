@@ -1078,8 +1078,13 @@ window.LiquidBack=closeTopSheet;
       persist();moveCard(it);syncAll();
       return;
     }
+    /* a delete takes one reminder off the list, so only its own cards come off the pages:
+       moveCard() hands the same reminder to placeOnPage(), which finds it in no page's new
+       order and removes the node it already has, and drops the empty state in where a page
+       is left with nothing. Rebuilding all four lists for it re-made every card on every
+       page — and the card nodes the user was looking at — for a change that is one removal. */
     items=items.filter(function(x){return x.id!==id});
-    persist();render();syncAll();
+    persist();moveCard(it);syncAll();
   });
 
   /* ---- add sheet ---- */
