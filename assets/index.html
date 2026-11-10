@@ -1407,19 +1407,31 @@ window.LiquidBack=closeTopSheet;
     fab.addEventListener('animationend', function(){ fab.classList.remove('bounce'); });
   }
 
-  /* the lens dips and springs back each time a tab settles */
+  /* the lens dips and springs back each time a tab settles. This handler reads clientWidth,
+     which forces a layout, and it used to do that once per scroll event: a fling fires far
+     more events than there are frames, so a single swipe measured the page dozens of times
+     for an answer that can only change once a frame. It rides one requestAnimationFrame now,
+     like the pager's own handler — the first event of a frame claims the slot and the rest
+     ride on it, so the read, the index and the bounce are decided once per frame. Nothing
+     about when the bounce plays changes: it still starts on the frame where the settled
+     index changes, and the lastIdx guard below still swallows every other frame. */
   var lensEl = document.querySelector('.lens');
   if(pagesEl && lensEl){
-    var lastIdx = -1;
+    var lastIdx = -1, lensPending = false;
     pagesEl.addEventListener('scroll', function(){
-      var w = pagesEl.clientWidth || 1;
-      var idx = Math.round(pagesEl.scrollLeft / w);
-      if(idx === lastIdx) return;
-      lastIdx = idx;
-      if(reduce) return;
-      lensEl.classList.remove('bounce');
-      void lensEl.offsetWidth;              /* restart the animation */
-      lensEl.classList.add('bounce');
+      if(lensPending) return;
+      lensPending = true;
+      requestAnimationFrame(function(){
+        lensPending = false;
+        var w = pagesEl.clientWidth || 1;
+        var idx = Math.round(pagesEl.scrollLeft / w);
+        if(idx === lastIdx) return;
+        lastIdx = idx;
+        if(reduce) return;
+        lensEl.classList.remove('bounce');
+        void lensEl.offsetWidth;              /* restart the animation */
+        lensEl.classList.add('bounce');
+      });
     }, {passive:true});
     lensEl.addEventListener('animationend', function(){ lensEl.classList.remove('bounce'); });
   }
