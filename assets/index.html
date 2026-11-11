@@ -1226,7 +1226,7 @@ window.LiquidBack=closeTopSheet;
     try{ console.info("[tick] recovered in "+where+": "+((e&&e.message)||e)); }catch(e2){}
   }
   function tick(){
-    var now=Date.now(),hit=false;
+    var now=Date.now(),fired=[];
     try{
       /* after a step back, a reminder whose due is in the future again has a moment still to
          come, so its alert is handed back and the timer is re-armed for it; one that is still
@@ -1239,11 +1239,20 @@ window.LiquidBack=closeTopSheet;
     }catch(e){ recover(e,"clock") }
     try{
       items.forEach(function(it){
-        try{ if(!it.done&&!it.fired&&it.due&&it.due<=now){it.fired=true;hit=true;alertFor(it)} }
+        try{ if(!it.done&&!it.fired&&it.due&&it.due<=now){it.fired=true;fired.push(it);alertFor(it)} }
         catch(e){ recover(e,"alert") }
       });
     }catch(e){ recover(e,"scan") }
-    if(hit){ try{persist()}catch(e){recover(e,"save")} try{render()}catch(e){recover(e,"draw")} }
+    /* a reminder coming due changes exactly one card — its due line turns red — so that one card
+       is moved into place, the way a toggle and a delete already do, instead of render(), which
+       empties all four pages and builds a fresh card for every reminder on each of them. That
+       rebuild ran at the moment the alert toast was arriving with its own animation, so a long
+       list paid for a thousand nodes just to redden one timestamp. Each fired reminder is moved
+       on its own, so one bad row costs its own card and nothing more. */
+    if(fired.length){
+      try{persist()}catch(e){recover(e,"save")}
+      fired.forEach(function(it){ try{ moveCard(it) }catch(e){ recover(e,"draw") } });
+    }
     /* the timer is re-armed even when the work above threw, so the chain of due moments survives */
     try{ schedule(); }catch(e){ recover(e,"schedule") }
   }
