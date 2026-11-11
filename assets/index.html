@@ -1294,9 +1294,21 @@ window.LiquidBack=closeTopSheet;
       schedule();
     },Math.min(wait+50,2147483647));
   }
+  /* coming back from the background is not a redraw. The page was not on screen, so nothing the
+     user can see changed while it was away: a reminder that came due is already put in its place
+     by tick(), which moves that one card and reddens its due line, and the Today/Upcoming split,
+     the "Today," and "Tomorrow," labels and the date under the title can only change at a local
+     midnight, which rearmDay() already watches. Every resume used to empty all four pages and
+     build a fresh card for every reminder — on a long list that is every card on every page
+     thrown away and made again each time the app is switched back to, at the exact moment the
+     user is waiting for it. The redraw now happens only when the day has rolled over while the
+     app was hidden, which is the one thing a resume cannot get from tick(). */
   document.addEventListener("visibilitychange",function(){
     document.documentElement.classList.toggle("paused",document.hidden);
-    if(!document.hidden){tick();render()}
+    if(document.hidden)return;
+    tick();
+    var k=dayStamp();
+    if(k!==dayKey){ dayKey=k; render(); }
   });
 
   /* ---- first-paint marker: one console line per load, so a run can compare before and
