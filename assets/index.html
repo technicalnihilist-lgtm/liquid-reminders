@@ -712,46 +712,44 @@ window.LiquidBack=closeTopSheet;
       try{ localStorage.setItem(KEY,"[]"); }catch(e){}
       return [];
     }
+    /* the repairs below are all done to the list in memory first and written back once, at
+       the end. Each one used to write the whole list the moment it changed something, so a
+       store needing all four cost five synchronous JSON.stringify+setItem passes of every
+       reminder on the page — before the first card was drawn. The value that lands in the
+       store is the same either way: only the number of writes changes. */
+    var dirty=false;
     var kept=v.filter(function(it){return it&&typeof it==="object"&&!(it instanceof Array)});
     if(kept.length!==v.length){
       stash(raw);
-      try{ localStorage.setItem(KEY,JSON.stringify(kept)); }catch(e){}
+      dirty=true;
     }
     /* one bad due (NaN, a negative, a string that is not a number) would sort as a hole and
-       print an invalid date, so every due is normalised here and the clean list is written
-       back; the reminder itself is kept, it just loses a date it never really had */
-    var fixed=false;
+       print an invalid date, so every due is normalised here; the reminder itself is kept,
+       it just loses a date it never really had */
     kept.forEach(function(it){
       var d=dueNum(it.due);
-      if(d!==it.due){ it.due=d; fixed=true; }
+      if(d!==it.due){ it.due=d; dirty=true; }
     });
-    if(fixed){ try{ localStorage.setItem(KEY,JSON.stringify(kept)); }catch(e){} }
     /* and for the colour: a card is built with it in its style attribute, so a stored value
-       that is not one of the palette colours is replaced here and the cleaned list written
-       back, like the other load-time repairs */
-    var cols=false;
+       that is not one of the palette colours is replaced here, like the other load-time
+       repairs */
     kept.forEach(function(it){
       var c=colorOf(it.color);
-      if(c!==it.color){ it.color=c; cols=true; }
+      if(c!==it.color){ it.color=c; dirty=true; }
     });
-    if(cols){ try{ localStorage.setItem(KEY,JSON.stringify(kept)); }catch(e){} }
     /* the same goes for ids: a list saved by an older build can carry repeats (or a missing
-       one), so the first holder keeps its id, every later repeat gets a free one, and the
-       cleaned list is written back like the other load-time repairs. */
+       one), so the first holder keeps its id and every later repeat gets a free one */
     seedIds(kept);
-    var seen={}, ids=false;
+    var seen={};
     kept.forEach(function(it){
-      if(typeof it.id!=="number"||!isFinite(it.id)||it.id<=0||seen[it.id]){ it.id=newId(); ids=true; }
+      if(typeof it.id!=="number"||!isFinite(it.id)||it.id<=0||seen[it.id]){ it.id=newId(); dirty=true; }
       seen[it.id]=1;
     });
-    if(ids){ try{ localStorage.setItem(KEY,JSON.stringify(kept)); }catch(e){} }
     /* and for the length: the cap is applied here, before anything is drawn, so a store of
        tens of thousands of rows cannot hold the page up on the first render */
     var capped=capList(kept);
-    if(capped!==kept){
-      kept=capped;
-      try{ localStorage.setItem(KEY,JSON.stringify(kept)); }catch(e){}
-    }
+    if(capped!==kept){ kept=capped; dirty=true; }
+    if(dirty){ try{ localStorage.setItem(KEY,JSON.stringify(kept)); }catch(e){} }
     return kept;
   }
   var items=load(), color=COLORS[0];
