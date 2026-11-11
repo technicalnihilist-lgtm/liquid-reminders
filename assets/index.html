@@ -1390,7 +1390,18 @@ window.LiquidBack=closeTopSheet;
 <script>
 /* ---- depth bounce driver ---- */
 (function(){
-  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /* the OS "remove animations" setting is a switch in system Settings, one screen away, and the
+     app is still running behind it while it is flipped: the answer used to be read once at load
+     and held until the next launch, so the press tilt, the cascade and the tab bounce kept
+     playing for as long as the app stayed open. It is kept in one place now and re-read when it
+     changes, so the very next press already honours it. */
+  var motionQ = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+  var reduce = !!(motionQ && motionQ.matches);
+  if(motionQ){
+    var onMotion = function(){ reduce = !!motionQ.matches; };
+    if(motionQ.addEventListener) motionQ.addEventListener('change', onMotion);
+    else if(motionQ.addListener) motionQ.addListener(onMotion);   /* older WebViews */
+  }
   var pressed = null;
 
   /* press: lift the card toward the viewer and tilt it toward the finger */
@@ -1561,7 +1572,13 @@ window.LiquidBack=closeTopSheet;
      so the store says what the sliders show and a later run reads a value it can keep */
   if(repaired) save();
 
-  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /* the same setting, read here for the parallax and the 3D tilt. It is watched rather than
+     sampled once, so flipping "remove animations" in system Settings while the app is open
+     parks the parallax and the tilt at once instead of at the next launch: the listener
+     re-applies the two variables apply() already writes, and nothing about the look changes
+     until the setting itself does. */
+  var motionQ = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+  var reduce = !!(motionQ && motionQ.matches);
 
   function apply(){
     root.style.setProperty('--d', (st.depth / 100).toFixed(2));
@@ -1569,6 +1586,11 @@ window.LiquidBack=closeTopSheet;
     root.style.setProperty('--tilt', st.tilt && !reduce ? '1' : '0');
   }
   apply();
+  if(motionQ){
+    var onMotion = function(){ reduce = !!motionQ.matches; apply(); };
+    if(motionQ.addEventListener) motionQ.addEventListener('change', onMotion);
+    else if(motionQ.addListener) motionQ.addListener(onMotion);   /* older WebViews */
+  }
 
   /* ---- motion source: device tilt if we have it, otherwise the pointer ---- */
   var tx = 0, ty = 0, cx = 0, cy = 0, running = true, seenOrient = false;
