@@ -892,15 +892,29 @@ window.LiquidBack=closeTopSheet;
     return e;
   }
   /* what each page shows right now, and how many reminders are still open */
+  /* Today, Upcoming and All are one open list cut three ways, and each page used to sort its own
+     copy of it: a list of 500 with 400 open ran the comparator over 400 reminders three times to
+     produce three orders of the same 400, and board() runs on every toggle, every delete and
+     every reminder that comes due. The open list is sorted once and the two date pages are cut
+     from that order, which is the order each page's own sort produced: the comparator is the
+     same and the sort is stable, so cutting a sorted list gives what sorting a cut list gave,
+     including the reminders with no date, which keep their place at the end. All is taken before
+     the done list is ordered, exactly as it was: All carries the finished reminders in the order
+     they are stored, and only Done is ordered by when they were finished. */
   function board(){
-    var eod=endOfToday(), open=items.filter(function(i){return !i.done}), done=items.filter(function(i){return i.done});
-    var pages=[
-      open.filter(function(i){return !i.due||i.due<=eod}).sort(sortFn),
-      open.filter(function(i){return i.due&&i.due>eod}).sort(sortFn),
-      open.sort(sortFn).concat(done),
-      done.sort(function(a,b){return (b.doneAt||0)-(a.doneAt||0)})
-    ];
-    return {pages:pages, open:open.length};
+    var eod=endOfToday(), open=[], done=[], today=[], later=[], k, it;
+    for(k=0;k<items.length;k++){
+      it=items[k];
+      if(it.done) done.push(it); else open.push(it);
+    }
+    open.sort(sortFn);
+    var all=open.concat(done);
+    for(k=0;k<open.length;k++){
+      it=open[k];
+      if(!it.due||it.due<=eod) today.push(it); else later.push(it);
+    }
+    done.sort(function(a,b){return (b.doneAt||0)-(a.doneAt||0)});
+    return {pages:[today,later,all,done], open:open.length};
   }
   function counts(b){
     var n=b.pages[0].length; $("#n0").textContent=n?n:"";
