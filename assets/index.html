@@ -1622,11 +1622,30 @@ window.LiquidBack=closeTopSheet;
     kick();
   }, {passive:true});
 
+  /* the pointer is the motion source whenever the device reports no orientation, and it used
+     to be turned into a target on every event: each pointermove divided the position by
+     window.innerWidth and window.innerHeight, which is a layout read, taken straight after
+     the loop above had written --px and --py, so a swipe forced a layout on every one of the
+     many events a frame carries. The position is parked here and turned into a target once a
+     frame — the first event of a frame claims the slot and the rest ride on it, the way the
+     pager and the lens handlers already work — and the viewport is measured when it changes
+     rather than on every event. Nothing about where the cards lean changes: the same position
+     gives the same --px and --py, one frame later at most. */
+  var ptrX = 0, ptrY = 0, vw = 1, vh = 1, ptrPending = false;
+  function viewport(){ vw = window.innerWidth || 1; vh = window.innerHeight || 1; }
+  viewport();
+  window.addEventListener('resize', viewport, {passive:true});
   document.addEventListener('pointermove', function(e){
     if(seenOrient) return;
-    tx = (e.clientX / (window.innerWidth || 1) - .5) * 2;
-    ty = (e.clientY / (window.innerHeight || 1) - .5) * 2;
-    kick();
+    ptrX = e.clientX; ptrY = e.clientY;
+    if(ptrPending) return;
+    ptrPending = true;
+    requestAnimationFrame(function(){
+      ptrPending = false;
+      tx = (ptrX / vw - .5) * 2;
+      ty = (ptrY / vh - .5) * 2;
+      kick();
+    });
   }, {passive:true});
 
   /* a sheet owns the screen while it is open, so the parallax is pointless there:
