@@ -754,6 +754,21 @@ window.LiquidBack=closeTopSheet;
       var c=colorOf(it.color);
       if(c!==it.color){ it.color=c; dirty=true; }
     });
+    /* the two lines of text a card carries are written with textContent, so a value that is not
+       text is printed as whatever String() makes of it: a store written by an older build, or
+       edited by hand, put "[object Object]" where a reminder's notes were, and the word "null"
+       where its title was — a card that says something the user never wrote. Both are kept to
+       text here, the way the due, the colour and the id are kept to their own shapes: a title
+       loses the invisible marks a paste carries and is trimmed, a number becomes the digits it
+       is, and notes that are not text are dropped, since a card has nowhere else to put them
+       and a blank line is better than an invented one. The reminder itself is kept. */
+    kept.forEach(function(it){
+      var t=(typeof it.title==="string")?titleOf(it.title)
+           :((typeof it.title==="number"&&isFinite(it.title))?String(it.title):"");
+      if(t!==it.title){ it.title=t; dirty=true; }
+      var n=(typeof it.notes==="string")?it.notes:"";
+      if(n!==it.notes){ it.notes=n; dirty=true; }
+    });
     /* the same goes for ids: a list saved by an older build can carry repeats (or a missing
        one), so the first holder keeps its id and every later repeat gets a free one */
     seedIds(kept);
