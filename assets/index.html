@@ -658,6 +658,23 @@ window.LiquidBack=closeTopSheet;
     try{ console.info("[store] kept the newest "+MAX_ITEMS+" of "+list.length+" reminders"); }catch(e){}
     return keep;
   }
+  /* the two keys written above hold copies of a value the app has already dealt with: the
+     unreadable store kept aside for hand recovery, and the reminders trimmed off a list past
+     the cap. Neither is ever read by the app — only by a person — and either can be as large as
+     the store itself. They are therefore the one thing it can give up without losing anything
+     it is still showing, so a write refused for want of room drops them and is tried once more.
+     A full store then costs the user those backups instead of the reminder they just changed;
+     the copy is still put aside in the first place, it is only given up when the room it takes
+     is the room the live list needs. Returns whether anything was actually freed. */
+  function clearSpare(){
+    var freed=false, keys=[KEY+".corrupt",KEY+".overflow"];
+    for(var k=0;k<keys.length;k++){
+      try{
+        if(localStorage.getItem(keys[k])!==null){ localStorage.removeItem(keys[k]); freed=true; }
+      }catch(e){}
+    }
+    return freed;
+  }
   /* a due is stored as milliseconds since the epoch, 0 meaning "no date". A numeric string
      is read as that number; anything else that is not a finite positive number is 0. */
   function dueNum(v){
@@ -760,8 +777,18 @@ window.LiquidBack=closeTopSheet;
        trimmed before it is stored and before it is drawn, and the reminder just added is
        never the one dropped */
     items=capList(items);
-    try{ localStorage.setItem(KEY,JSON.stringify(items)); }
-    catch(e){ saveFailed(e); }
+    var json=JSON.stringify(items);
+    try{ localStorage.setItem(KEY,json); }
+    catch(e){
+      /* the store refused the write: if the app is holding spare copies of its own, they go and
+         the same write is tried once more, so the room they took is the list's again. Only when
+         nothing was freed, or the retry fails too, is the user told it could not be saved. */
+      if(!clearSpare()){ saveFailed(e); }
+      else{
+        try{ localStorage.setItem(KEY,json); }
+        catch(e2){ saveFailed(e2); }
+      }
+    }
     schedule();
   }
   /* hand the whole list to the Android alarm scheduler */
