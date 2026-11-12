@@ -792,15 +792,34 @@ window.LiquidBack=closeTopSheet;
      untouched. A value the Date object cannot represent at all (a store edited by hand, a number
      past the range it holds) has no time to show and used to print "Invalid Date, Invalid Date"
      on the card; it now returns nothing and the line is left off entirely. */
+  /* a due line is written with Intl, and building a formatter is the expensive half of that:
+     fmt() built one for the time and one for the date on every call, so drawing a list of a
+     hundred reminders built two hundred formatters before the first card was on screen, and
+     counts() built the long date again on every render and on every card move. The four shapes
+     the interface ever asks for are built once here and reused. The strings do not change:
+     toLocaleTimeString and toLocaleDateString are defined as a DateTimeFormat built from exactly
+     these options, so every call returns what it returned before. A WebView without Intl keeps
+     the old calls. */
+  var DF=(function(){
+    try{
+      if(!window.Intl||!Intl.DateTimeFormat) return null;
+      return {
+        time:new Intl.DateTimeFormat([],{hour:"numeric",minute:"2-digit"}),
+        day:new Intl.DateTimeFormat([],{weekday:"short",month:"short",day:"numeric"}),
+        dayYear:new Intl.DateTimeFormat([],{weekday:"short",month:"short",day:"numeric",year:"numeric"}),
+        longDay:new Intl.DateTimeFormat([],{weekday:"long",month:"long",day:"numeric"})
+      };
+    }catch(e){ return null }
+  })();
   function fmt(t){
     var d=new Date(t), n=new Date();
     if(!isFinite(d.getTime())) return "";
-    var tm=d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
+    var tm=DF?DF.time.format(d):d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
     var diff=Math.round((new Date(d.getFullYear(),d.getMonth(),d.getDate())-new Date(n.getFullYear(),n.getMonth(),n.getDate()))/864e5);
     if(diff===0) return "Today, "+tm; if(diff===1) return "Tomorrow, "+tm; if(diff===-1) return "Yesterday, "+tm;
     var o={weekday:"short",month:"short",day:"numeric"};
     if(d.getFullYear()!==n.getFullYear()) o.year="numeric";
-    return d.toLocaleDateString([],o)+", "+tm;
+    return (DF?(d.getFullYear()!==n.getFullYear()?DF.dayYear:DF.day).format(d):d.toLocaleDateString([],o))+", "+tm;
   }
   function sortFn(a,b){return (a.due||9e15)-(b.due||9e15)}
   var EMPTY=[
@@ -858,7 +877,7 @@ window.LiquidBack=closeTopSheet;
   }
   function counts(b){
     var n=b.pages[0].length; $("#n0").textContent=n?n:"";
-    $("#sub").textContent=new Date().toLocaleDateString([],{weekday:"long",month:"long",day:"numeric"})+(b.open?" · "+b.open+" to do":"");
+    $("#sub").textContent=(DF?DF.longDay.format(new Date()):new Date().toLocaleDateString([],{weekday:"long",month:"long",day:"numeric"}))+(b.open?" · "+b.open+" to do":"");
   }
   function render(){
     var b=board(), lists=b.pages;

@@ -47,6 +47,7 @@ installable build roughly twice a day. Items marked **[release]** cut one regard
 
 - [x] Stop rebuilding all four pages every time the app comes back from the background — the `visibilitychange` handler ran `tick()` and then `render()` on every resume, so returning to the app emptied all four pages and built a fresh card for every reminder, while a reminder that came due is already moved into place by `tick()` and the labels can only change at a local midnight
 - [x] Write the load-time repairs back to the store once instead of once per repair — `load()` normalises the dues, the colours, the ids and the length in four separate passes and every pass that changed something called `localStorage.setItem` with the whole list on the spot, so a store needing all four cost five synchronous `JSON.stringify`+`setItem` passes over every reminder before the first card was drawn
+- [x] Build the four `Intl.DateTimeFormat` formatters once at load instead of one per call — `fmt()` built a time formatter and a date formatter for every due line it printed, so drawing a list of a hundred reminders built two hundred of them before the first card was on screen, and `counts()` built the long date again on every render and on every card move
 
 ## Bugs and robustness
 
@@ -107,6 +108,8 @@ installable build roughly twice a day. Items marked **[release]** cut one regard
 ---
 
 ## Done
+
+- **12 Nov, run 16** — a due line and the date under the title are now written by formatters built once at load instead of one per call. `fmt()` ran on every due line of every card, and each call built an `Intl.DateTimeFormat` for the time and another for the date, so drawing a list of a hundred reminders built two hundred formatters before the first card was on screen; `counts()` built the long date again on every render and on every card move, and a toggle or a delete is a card move. The four shapes the interface ever asks for — time, short date, short date with year, long date — are built once at the top of the store closure and reused, and a WebView with no `Intl` keeps the old `toLocaleTimeString`/`toLocaleDateString` calls, so nothing about the interface depends on the cache being there. No wording, layout, spacing or colour changed: the specification defines those two `toLocale*` calls as a `DateTimeFormat` built from exactly these options, so the strings are the same ones. Verified in headless Chromium (mobile 412x915, bridge mocked as `window.AndroidBridge`, ten seeded reminders including an overdue one, one with no date, one with an unparseable date and two finished): the page loads with no page errors and no console errors, `resync` and `askNotifications` are still called on load and `resync` again on a toggle, and `body.innerText` is byte-identical to the same page before the change — the four pages, every due line, the date under the title and the finished cards all read the same. A direct sweep of 293 timestamps from 2020 to the far future found no difference between the cached formatters and the calls they replace. `./build.sh` produces the signed APK (versionCode 3, versionName 1.2) and the packaged `assets/index.html` matches the source byte for byte.
 
 _(each run appends one line here)_
 
