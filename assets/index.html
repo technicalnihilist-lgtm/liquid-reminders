@@ -790,8 +790,12 @@ window.LiquidBack=closeTopSheet;
   function persist(){
     /* the same cap on the way out, so a list that grows past it through the interface is
        trimmed before it is stored and before it is drawn, and the reminder just added is
-       never the one dropped */
+       never the one dropped. How many rows the cap took is handed back to the caller: an add
+       that pushed the oldest reminder off the list is the one case where the pages still have
+       to be drawn from scratch, because that reminder's card has to leave them too */
+    var before=items.length;
     items=capList(items);
+    var trimmed=before-items.length;
     var json=JSON.stringify(items);
     try{ localStorage.setItem(KEY,json); }
     catch(e){
@@ -805,6 +809,7 @@ window.LiquidBack=closeTopSheet;
       }
     }
     schedule();
+    return trimmed;
   }
   /* hand the whole list to the Android alarm scheduler */
   function syncAll(){
@@ -1201,7 +1206,17 @@ window.LiquidBack=closeTopSheet;
     var v=$("#f-due").value, due=v?new Date(v).getTime():0;
     var it={id:newId(),title:title,notes:$("#f-notes").value.trim(),due:due,color:color,done:false,fired:false};
     items.push(it);
-    persist();render();closeSheet();syncAll();
+    /* an add is one new card, not a redraw of the whole board. render() emptied all four pages
+       and built a fresh card for every reminder on each of them — on a list near the 500 cap
+       that is a thousand nodes thrown away and made again, at the moment the sheet closes and
+       the new card animates in. moveCard() is what a toggle and a delete already use, and an
+       add is the same shape of change: the one reminder is placed on each page it belongs to
+       and every other card is left where it is. The cap is the exception — adding to a list
+       already at it drops the oldest reminder, whose card must come off the pages as well, so
+       persist() says how many rows it took and that case still draws all four pages. */
+    var dropped=persist();
+    if(dropped) render(); else moveCard(it);
+    closeSheet();syncAll();
     goto(due&&due>endOfToday()?1:0);
   };
 
