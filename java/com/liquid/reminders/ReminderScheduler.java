@@ -96,9 +96,22 @@ public final class ReminderScheduler {
         if (am != null) am.cancel(fireIntent(c, id));
     }
 
+    /* Drop every reminder the shell is holding, and the alarms armed for them, and nothing
+       else. This file is the app's own store, not just the mirror of the list: the flags that
+       say the exact-alarm permission has been seen (KEY_EXACT) and that the notification
+       permission has been answered (KEY_ASKED) live beside the item_* entries. A clear() took
+       them with it, and resync() calls this on every add, toggle and delete, so after any
+       change to the list the exact-alarm flag read back as "never granted": the next resume
+       found the permission granted for the first time and ran rescheduleAll(), which cancelled
+       and re-armed every pending alarm from scratch — and handed anything already due to the
+       tray again — and the "permission answered" flag behind the notifications-refused hint
+       was forgotten in the same pass. Only the item_* keys and the signature go now, so a
+       rebuild says what it means: these reminders are re-armed, the app's own bookkeeping
+       stands. */
     static void clearAll(Context c) {
         SharedPreferences sp = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
+        SharedPreferences.Editor ed = sp.edit();
         for (Map.Entry<String, ?> e : sp.getAll().entrySet()) {
             String k = e.getKey();
             if (!k.startsWith(PREFIX)) continue;
@@ -107,8 +120,11 @@ public final class ReminderScheduler {
                 if (am != null) am.cancel(fireIntent(c, id));
             } catch (Exception ignored) {
             }
+            ed.remove(k);
         }
-        sp.edit().clear().apply();
+        /* the signature says which list the armed alarms were built from, so it goes with them */
+        ed.remove(KEY_SYNC);
+        ed.apply();
     }
 
     /** Called by the web layer whenever the list changes: rebuild every alarm from scratch. */
