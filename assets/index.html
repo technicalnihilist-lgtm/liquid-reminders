@@ -1000,10 +1000,35 @@ window.LiquidBack=closeTopSheet;
     }
     if(next) page.insertBefore(node,next); else page.appendChild(node);
   }
-  function moveCard(it){
-    var b=board(), idx=[], i;
+  /* the position and card maps for all four pages, read once for a whole move */
+  function boardMaps(b){
+    var idx=[], i;
     for(i=0;i<4;i++) idx.push(pageIndex(b.pages[i],$("#p"+i)));
-    for(i=0;i<4;i++) placeOnPage($("#p"+i),i,idx[i],it);
+    return idx;
+  }
+  function placeEverywhere(it,idx){
+    for(var i=0;i<4;i++) placeOnPage($("#p"+i),i,idx[i],it);
+  }
+  function moveCard(it){
+    var b=board(), idx=boardMaps(b);
+    placeEverywhere(it,idx);
+    counts(b);
+  }
+  /* the same move for a batch of reminders that changed together. A burst of overdue ones — the
+     app opened after a night with the phone off, a clock stepped forward — used to rebuild the
+     board once per card: moveCard() sorts the whole open list and builds the position and card
+     maps for all four pages, and tick() called it in a loop, so twenty reminders coming due at
+     once sorted the same list twenty times and built eighty maps, at the moment their alerts
+     were arriving. The board is the same for all of them (every one is marked fired before any
+     card is placed), so it is built once here and each card is placed against it, and counts()
+     runs once at the end instead of once per card. Where a card lands does not change: the same
+     maps, the same placement, and a card that throws still costs its own card and no more. */
+  function moveCards(list){
+    if(!list.length) return;
+    var b=board(), idx=boardMaps(b), i;
+    for(i=0;i<list.length;i++){
+      try{ placeEverywhere(list[i],idx) }catch(e){ recover(e,"draw") }
+    }
     counts(b);
   }
 
@@ -1339,7 +1364,7 @@ window.LiquidBack=closeTopSheet;
        on its own, so one bad row costs its own card and nothing more. */
     if(fired.length){
       try{persist()}catch(e){recover(e,"save")}
-      fired.forEach(function(it){ try{ moveCard(it) }catch(e){ recover(e,"draw") } });
+      try{ moveCards(fired) }catch(e){ recover(e,"draw") }
     }
     /* the timer is re-armed even when the work above threw, so the chain of due moments survives */
     try{ schedule(); }catch(e){ recover(e,"schedule") }
