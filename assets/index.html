@@ -952,9 +952,6 @@ window.LiquidBack=closeTopSheet;
   }
   /* a toggle only changes one reminder, so move that one card into place on each page
      and leave every other card alone instead of rebuilding all four lists */
-  function itemKids(page){
-    return [].filter.call(page.children,function(n){return n.classList&&n.classList.contains("item")});
-  }
   /* where every reminder sits on a page, and which card already carries it, read once for the
      whole move. Both used to be found by scanning: the position by walking the page order, the
      card by walking the page's children, and then the card that follows was found by walking
@@ -962,22 +959,51 @@ window.LiquidBack=closeTopSheet;
      cost a walk of the order for every card on the page, quadratic in the list, on the one
      action the app is used for most. Both maps are built in a single pass here and then
      consulted, and the walk for the card that follows stays one pass in document order, which
-     is the card the old nested scan returned too. */
+     is the card the old nested scan returned too.
+
+     The two maps are Maps, not objects. A reminder's id is a millisecond stamp — a number far
+     past the range an object keeps as an array index — so an object keyed by one is a
+     dictionary that turns the number into a string on the way in and looks it up as a string
+     afterwards, and a page of five hundred of them is five hundred of those conversions on
+     every one of the four pages, on every toggle, every delete, every add and every reminder
+     that comes due. A Map keeps the number it was given. The walk of the children is written
+     out here instead of going through itemKids(), which built a second array of every card on
+     the page only for this loop to walk it again. */
   function pageIndex(order,page){
-    var posOf={}, nodeOf={}, kids=itemKids(page), k;
-    for(k=0;k<order.length;k++) posOf[order[k].id]=k;
-    for(k=0;k<kids.length;k++) nodeOf[+kids[k].dataset.id]=kids[k];
+    var posOf=new Map(), nodeOf=new Map(), kids=page.children, n, k;
+    for(k=0;k<order.length;k++) posOf.set(order[k].id,k);
+    for(k=0;k<kids.length;k++){
+      n=kids[k];
+      if(n.classList&&n.classList.contains("item")) nodeOf.set(+n.dataset.id,n);
+    }
     return {pos:posOf,nodes:nodeOf};
   }
+  /* the page's cards in document order, and the empty state if one is standing in for the
+     list, read in a single pass. They used to be read apart from each other — a walk of the
+     children for the empty state and a second one for the cards — and the branch
+     that takes a card off a page walked them a third time only to ask whether anything was
+     left on it. That is one walk of every card on the page, three times over, for each of the
+     four pages, on every toggle, every delete, every reminder that comes due and every add;
+     and a burst of due reminders places a card on each page for each of them. */
+  function pageKids(page){
+    var kids=[], empty=null, n, k;
+    for(k=0;k<page.children.length;k++){
+      n=page.children[k];
+      if(n.classList&&n.classList.contains("item")) kids.push(n);
+      else if(!empty&&n.classList&&n.classList.contains("empty")) empty=n;
+    }
+    return {kids:kids,empty:empty};
+  }
   function placeOnPage(page,i,idx,it){
-    var pos=idx.pos.hasOwnProperty(it.id)?idx.pos[it.id]:-1;
-    var node=idx.nodes.hasOwnProperty(it.id)?idx.nodes[it.id]:null;
-    var empty=null, k;
-    for(k=0;k<page.children.length;k++) if(page.children[k].classList.contains("empty")){empty=page.children[k];break}
+    var pos=idx.pos.has(it.id)?idx.pos.get(it.id):-1;
+    var node=idx.nodes.has(it.id)?idx.nodes.get(it.id):null;
+    var found=pageKids(page), kids=found.kids, empty=found.empty, n, k;
     if(pos<0){
       if(!node) return;                       /* this page never showed it: nothing to do */
       page.removeChild(node);
-      if(!itemKids(page).length) page.appendChild(emptyEl(i));
+      /* the empty state only ever stands on a page that holds nothing else, so a page left
+         with no child at all is the one that has just lost its last card */
+      if(!page.firstElementChild) page.appendChild(emptyEl(i));
       return;
     }
     if(!node) node=card(it);                  /* first time on this page */
@@ -991,11 +1017,12 @@ window.LiquidBack=closeTopSheet;
       }
     }
     if(empty) page.removeChild(empty);
-    var next=null, kids=itemKids(page);
+    var next=null;
     for(k=0;k<kids.length;k++){
-      var n=kids[k], p;
+      n=kids[k];
       if(n===node) continue;
-      p=idx.pos.hasOwnProperty(+n.dataset.id)?idx.pos[+n.dataset.id]:-1;
+      var id=+n.dataset.id;
+      var p=idx.pos.has(id)?idx.pos.get(id):-1;
       if(p>pos){next=n;break}
     }
     if(next) page.insertBefore(node,next); else page.appendChild(node);
