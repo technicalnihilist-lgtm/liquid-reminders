@@ -567,6 +567,24 @@ var SHEET_TRAP=(function(){
      says it is a dialog that owns the screen. The buttons that open them carry aria-controls
      and report whether their sheet is up, so the trigger and the sheet agree. */
   function triggers(){ return [].slice.call(document.querySelectorAll("[aria-controls]")); }
+  /* keeping a closed sheet out of the accessibility tree is not the same as taking it out of
+     the tab order: aria-hidden only speaks to a screen reader, so a keyboard's Tab still
+     walked off the end of the page and into the closed sheet — the title field, the notes,
+     the due input, the five colour dots and both buttons, none of them on screen — and the
+     way back to the page was through all of it. A closed sheet now carries `inert`, the
+     attribute for exactly this: its controls leave the tab order, refuse the focus and drop
+     out of the accessibility tree, while nothing about how the sheet looks or moves changes.
+     It is set as each sheet is parked and lifted again in start(), and a WebView too old to
+     know the attribute keeps today's behaviour, since the guard is only that the name is
+     there. */
+  var CAN_INERT=(function(){
+    try{ return "inert" in document.createElement("div"); }catch(e){ return false }
+  })();
+  function park(el,closed){
+    if(!CAN_INERT||!el)return;
+    if(closed) el.setAttribute("inert","");
+    else el.removeAttribute("inert");
+  }
   function start(el){
     if(!el||held===el)return;
     if(held)end(held);
@@ -574,6 +592,7 @@ var SHEET_TRAP=(function(){
     el.setAttribute("role","dialog");
     el.setAttribute("aria-modal","true");
     el.removeAttribute("aria-hidden");
+    park(el,false);
     triggers().forEach(function(b){
       b.setAttribute("aria-expanded", b.getAttribute("aria-controls")===el.id?"true":"false");
     });
@@ -591,6 +610,7 @@ var SHEET_TRAP=(function(){
     el.removeAttribute("role");
     el.removeAttribute("aria-modal");
     el.setAttribute("aria-hidden","true");
+    park(el,true);
     triggers().forEach(function(b){ b.setAttribute("aria-expanded","false"); });
   }
   document.addEventListener("keydown",function(e){
@@ -602,6 +622,8 @@ var SHEET_TRAP=(function(){
       if(!inside||a===first||a===held){ e.preventDefault(); last.focus(); }
     }else if(!inside||a===last||a===held){ e.preventDefault(); first.focus(); }
   });
+  /* both sheets arrive closed, so both are parked before the first Tab can reach them */
+  ["sheet","settings"].forEach(function(id){ park(document.getElementById(id),true); });
   return { start:start, end:end };
 })();
 
@@ -1226,10 +1248,21 @@ window.LiquidBack=closeTopSheet;
       var on=x===d; x.classList.toggle("sel",on); x.setAttribute("aria-pressed",on?"true":"false");
     });
   });
+  /* the title field is focused a beat after the sheet starts moving, so the keyboard does not
+     fight the animation. A sheet closed inside that beat — Escape, Cancel, a tap on the scrim,
+     or the gear opening Settings over it — used to focus the field anyway, so the focus landed
+     in a sheet that was already closed and the tab order started there. The timer is kept now
+     and dropped when the sheet closes, and it only focuses while the sheet is still up. */
+  var sheetFocusT=0;
   function openSheet(){
     var d=new Date(Date.now()+36e5);d.setMinutes(0,0,0);
     $("#f-due").value=localInput(d);ft.value="";$("#f-notes").value="";save.disabled=true;
-    sheet.classList.add("open");scrim.classList.add("open");SHEET_TRAP.start(sheet);setTimeout(function(){ft.focus()},350);
+    sheet.classList.add("open");scrim.classList.add("open");SHEET_TRAP.start(sheet);
+    clearTimeout(sheetFocusT);
+    sheetFocusT=setTimeout(function(){
+      sheetFocusT=0;
+      if(sheet.classList.contains("open")&&document.contains(ft))ft.focus();
+    },350);
     askNotify();
   }
   /* closing is only closing while the sheet is up. The Escape handler below listens on the
@@ -1242,6 +1275,7 @@ window.LiquidBack=closeTopSheet;
      sheet — the same guard SHEET_TRAP.end() already applies before it hides the sheet. */
   function closeSheet(){
     if(!sheet.classList.contains("open"))return;
+    clearTimeout(sheetFocusT);sheetFocusT=0;
     sheet.classList.remove("open");scrim.classList.remove("open");
     try{ if(sheet.contains(document.activeElement))document.activeElement.blur(); }catch(e){}
     SHEET_TRAP.end(sheet);
