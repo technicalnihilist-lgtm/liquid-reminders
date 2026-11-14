@@ -7,6 +7,8 @@ import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.view.Window;
 import android.view.WindowInsets;
 import android.webkit.JavascriptInterface;
@@ -207,6 +209,29 @@ public class MainActivity extends Activity {
     protected void onPause() {
         ReminderScheduler.setForeground(false);
         super.onPause();
+    }
+
+    /* The activity going away does not take the WebView with it. A WebView is a native object
+       with a renderer of its own behind it, and destroy() is the only thing that releases those;
+       without it the finished activity left its WebView, the bridge it carries and everything
+       Chromium had allocated for the page alive in the process, which Android keeps cached after
+       the app is closed. Opening the app again in that same process then built a second WebView
+       beside the first, so each visit kept another page's worth of it until the process itself
+       was killed. The view is taken off the window and destroyed here, in the order the
+       documentation gives, and the field is cleared so the insets and hint callbacks that can
+       still run after this find nothing to touch. */
+    @Override
+    protected void onDestroy() {
+        if (web != null) {
+            try {
+                ViewParent p = web.getParent();
+                if (p instanceof ViewGroup) ((ViewGroup) p).removeView(web);
+                web.destroy();
+            } catch (Exception ignored) {
+            }
+            web = null;
+        }
+        super.onDestroy();
     }
 
     @Override
