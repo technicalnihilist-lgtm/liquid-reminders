@@ -1243,13 +1243,36 @@ window.LiquidBack=closeTopSheet;
     rzT=setTimeout(function(){measure();dockRoom();pages.scrollLeft=lastIdx*(pageW||pages.clientWidth);sync()},140);
   });
 
+  /* ---- focus after a card moves or goes ----
+     a card is a node the app moves from one page to another, and a delete takes its node out of
+     the document altogether: either way the button that held the focus leaves the document with
+     it, the focus falls back to the body, and the next Tab starts again from the top of the
+     page — deleting the third reminder of twenty meant tabbing back through the whole list to
+     reach the fourth, and a toggle dropped the focus just as surely. Only a press that already
+     had the focus is given one back, so a tap on the glass behaves exactly as it did: the card
+     the user acted on takes the focus back once it has been placed, and a card that is gone
+     hands it to the card that took its place, then to the one before it, then to the button that
+     adds a reminder. The page, the button and the card's place on it are all read before the
+     change, because none of them is where it was once the change has been drawn. */
+  function refocus(page,was,id,idx){
+    if(!was||!page) return;
+    var target=null,n,kids=page.querySelectorAll(".item");
+    if(id){ n=page.querySelector('.item[data-id="'+id+'"]'); if(n) target=n.querySelector('[data-a="'+was+'"]'); }
+    if(!target&&kids.length){ n=kids[Math.min(idx,kids.length-1)]; if(n) target=n.querySelector('[data-a="'+was+'"]'); }
+    if(!target&&idx>0){ n=kids[idx-1]; if(n) target=n.querySelector('[data-a="'+was+'"]'); }
+    if(!target) target=document.getElementById("fab");
+    try{ if(target&&document.contains(target)) target.focus(); }catch(e){}
+  }
   /* ---- list actions ---- */
   document.addEventListener("click",function(e){
     var b=e.target.closest("[data-a]"); if(!b)return;
     var el=b.closest(".item"), id=+el.dataset.id, it=items.filter(function(x){return x.id===id})[0]; if(!it)return;
+    /* where the focus was, and where on its page the card sat, read before the card moves */
+    var page=el.parentNode, was=(document.activeElement===b)?b.dataset.a:"", idx=0, kids=[].slice.call(page?page.querySelectorAll(".item"):[]);
+    for(;idx<kids.length;idx++) if(kids[idx]===el) break;
     if(b.dataset.a==="toggle"){
       it.done=!it.done;it.doneAt=it.done?Date.now():0;
-      persist();moveCard(it);syncAll();
+      persist();moveCard(it);syncAll();refocus(page,was,id,idx);
       return;
     }
     /* a delete takes one reminder off the list, so only its own cards come off the pages:
@@ -1258,7 +1281,7 @@ window.LiquidBack=closeTopSheet;
        is left with nothing. Rebuilding all four lists for it re-made every card on every
        page — and the card nodes the user was looking at — for a change that is one removal. */
     items=items.filter(function(x){return x.id!==id});
-    persist();moveCard(it);syncAll();
+    persist();moveCard(it);syncAll();refocus(page,was,0,idx);
   });
 
   /* ---- add sheet ---- */
