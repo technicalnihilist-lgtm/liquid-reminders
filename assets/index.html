@@ -705,6 +705,13 @@ window.LiquidBack=closeTopSheet;
     else if(typeof v==="string"&&v.trim()!=="") n=Number(v);
     return (isFinite(n)&&n>0)?n:0;
   }
+  /* a flag is stored as true or false, and read as one by everything that touches it: the split
+     in board(), the guard in tick(), the class on the card. A value that is not already a boolean
+     is read as true only when it plainly says so — true, 1, "1", "true" — and as false otherwise,
+     so the word "false" and the string "0" both mean false instead of the truthy strings they are. */
+  function flag(v){
+    return v===true||v===1||v==="1"||v==="true";
+  }
   /* ids have to be unique: two reminders saved inside the same millisecond used to get the
      same Date.now(), so a toggle moved the wrong card and a delete took out both. A new id
      is now strictly greater than every id already seen, seeded from the list on load, so it
@@ -798,6 +805,21 @@ window.LiquidBack=closeTopSheet;
     kept.forEach(function(it){
       if(typeof it.id!=="number"||!isFinite(it.id)||it.id<=0||seen[it.id]){ it.id=newId(); dirty=true; }
       seen[it.id]=1;
+    });
+    /* the two flags a card and the tick act on, and the stamp the Done page orders by, are kept
+       to their own shapes for the same reason as the due, the colour and the title above. Both
+       flags are read as booleans everywhere — the split in board(), the guard in tick(), the
+       `done` class on the card — so a row carrying the word "false", or the number 0 where a flag
+       was written by hand, reads as finished: a reminder nobody had finished sat on the Done page
+       and its alert was spent before it ever rang. `doneAt` is what Done is ordered by, and a
+       stamp that is not a number made that order NaN. Each flag becomes the boolean it means; a
+       stamp that is there but not a finite, non-negative number becomes 0. A stamp that is not
+       there at all is left out, so a store the app wrote itself is not rewritten on every load. */
+    kept.forEach(function(it){
+      var at=it.doneAt;
+      if(typeof it.done!=="boolean"){ it.done=flag(it.done); dirty=true; }
+      if(typeof it.fired!=="boolean"){ it.fired=flag(it.fired); dirty=true; }
+      if(at!==undefined&&!(typeof at==="number"&&isFinite(at)&&at>=0)){ it.doneAt=0; dirty=true; }
     });
     /* and for the length: the cap is applied here, before anything is drawn, so a store of
        tens of thousands of rows cannot hold the page up on the first render */
