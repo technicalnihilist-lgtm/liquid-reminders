@@ -1181,8 +1181,18 @@ window.LiquidBack=closeTopSheet;
       });
       $("#title").textContent=TITLES[r];
       if(restored)saveTab(r);
+      /* the tab order is a function of the settled section and of nothing else, so it is
+         written here, where that section is known to have changed, instead of on every frame
+         of a swipe. It used to run after this block on every sync(), and sync() runs once per
+         frame while the pages move: a fling therefore wrote tabIndex four times on each of
+         sixty frames a second — the same four values, over and over — on the tab bar, which is
+         a glass element with a backdrop-filter behind it, so each of those writes invalidated
+         the style of the one thing on screen that is most expensive to repaint, for an answer
+         that had not changed since the last section. Nothing about the order changes: the tabs
+         still hold exactly one Tab stop and the arrows still walk it, because the index they
+         are written from is the same one. */
+      roving(r);
     }
-    roving(r);
   }
   /* a fling fires far more scroll events than there are frames, and every one of them queued
      its own requestAnimationFrame(sync): sync() ran several times inside a single frame, and
