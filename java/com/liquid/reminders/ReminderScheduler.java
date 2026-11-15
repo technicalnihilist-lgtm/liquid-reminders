@@ -68,6 +68,28 @@ public final class ReminderScheduler {
         return PendingIntent.getBroadcast(c, (int) (Math.abs(id) % 1000000), i, flags);
     }
 
+    /* The id a reminder's notification is posted under. A notification is identified by that
+       int and nothing else — its title, its text and its when are all replaced by the next post
+       under the same id — so the id has to be the reminder. It used to be the last six digits of
+       the reminder's own id, exactly as the alarm's request code was before every reminder was
+       given an alarm of its own: two reminders whose ids differed by a whole million (sixteen
+       minutes forty of adding, since an id is a millisecond stamp) therefore posted under one
+       id, and the second one delivered replaced the first in the tray — the first reminder rang
+       and then quietly disappeared, leaving one notification standing for two. The whole 64-bit
+       id is mixed into the int here instead, with the finaliser SplitMix64 uses and its two halves
+       folded together: every bit of the id reaches the result, so ids a millisecond apart and ids
+       a million apart land far from each other, and a tray of reminders due at the same moment
+       keeps every one of them. The
+       same value is used on every post of a given reminder, so posting again still updates that
+       reminder's own notification rather than stacking a second one beside it. */
+    static int trayId(long id) {
+        long z = id + 0x9E3779B97F4A7C15L;
+        z = (z ^ (z >>> 30)) * 0xBF58476D1CE4E5B9L;
+        z = (z ^ (z >>> 27)) * 0x94D049BB133111EBL;
+        z = z ^ (z >>> 31);
+        return (int) (z ^ (z >>> 32));
+    }
+
     static void schedule(Context c, long id, String title, String notes, long due) {
         SharedPreferences sp = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         try {
@@ -445,7 +467,7 @@ public final class ReminderScheduler {
                 .setDefaults(Notification.DEFAULT_ALL);
 
         try {
-            nm.notify((int) (Math.abs(id) % 1000000), b.build());
+            nm.notify(trayId(id), b.build());
         } catch (SecurityException ignored) {
             // Notification permission revoked by the user.
         }
