@@ -8,6 +8,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Build;
 
 import org.json.JSONArray;
@@ -46,9 +47,21 @@ public final class ReminderScheduler {
     private ReminderScheduler() {
     }
 
+    /* One alarm per reminder. A PendingIntent is identified by its action, its data, its type
+       and its component — not by its extras — and the request code only narrows it further, so
+       the identity of every alarm used to be the last six digits of the reminder's id. Two
+       reminders whose ids differed by a whole million (about sixteen minutes forty of adding,
+       since an id is a millisecond stamp) therefore shared one alarm: arming the second
+       replaced the first's time and its extras, and cancelling one cancelled the other's, so a
+       reminder could sit in the list and never ring at all. The id now rides in the intent's
+       data as well, which is the whole of it, so every reminder has an alarm of its own and
+       cancel() reaches exactly the one it names. The request code stays as it was: it is
+       harmless once the data differs, and the receiver reads the id from the extra it always
+       did. */
     static PendingIntent fireIntent(Context c, long id) {
         Intent i = new Intent(c, ReminderReceiver.class);
         i.setAction("com.liquid.reminders.FIRE");
+        i.setData(Uri.parse("liquid://reminder/" + id));
         i.putExtra("id", id);
         int flags = PendingIntent.FLAG_UPDATE_CURRENT;
         if (Build.VERSION.SDK_INT >= 23) flags |= PendingIntent.FLAG_IMMUTABLE;
