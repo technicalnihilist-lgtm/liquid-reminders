@@ -1798,11 +1798,23 @@ window.LiquidBack=closeTopSheet;
      until the setting itself does. */
   var motionQ = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : null;
   var reduce = !!(motionQ && motionQ.matches);
+  /* whether the lean can be seen at all. --px and --py only ever reach the cards multiplied by
+     --par, and --par is 0 in two places: under reduced motion, and at the bottom of the Parallax
+     slider. At those two settings the loop still ran a frame on every pointer move and wrote
+     --px and --py on the root each time, and a custom property on the root is inherited by every
+     element that reads it, so each write invalidated the style of the whole page to move the
+     cards by nothing: work spent on the one setting where the user asked for less motion, and
+     on the slider's own floor. The flag is read by kick() and loop(), which take the target as
+     the current one instead of drawing it. Nothing about where the cards lean changes, because
+     at --par:0 the lean is multiplied away either way, and the position kept here is the one the
+     loop would have reached, so turning the slider back up shows the cards where they were. */
+  var parOn = true;
 
   function apply(){
     root.style.setProperty('--d', (st.depth / 100).toFixed(2));
     root.style.setProperty('--par', reduce ? '0' : (st.par / 100).toFixed(2));
     root.style.setProperty('--tilt', st.tilt && !reduce ? '1' : '0');
+    parOn = !reduce && st.par > 0;
   }
   apply();
   if(motionQ){
@@ -1860,11 +1872,16 @@ window.LiquidBack=closeTopSheet;
   }
 
   function kick(){
+    /* with the lean multiplied away there is no frame worth running: the target is taken as the
+       current one, so the loop is not woken for a change nobody can see, and the position it
+       would have reached is already here for the next kick to start from */
+    if(!parOn){ cx = tx; cy = ty; return; }
     if(sheetOpen()) return;
     if(!running){ running = true; requestAnimationFrame(loop); }
   }
 
   function loop(){
+    if(!parOn){ cx = tx; cy = ty; running = false; return; }   /* lean at 0: no frames */
     if(sheetOpen()){ running = false; return; }   /* sheet open: no frames */
     cx += (tx - cx) * .12;
     cy += (ty - cy) * .12;
@@ -1930,6 +1947,10 @@ window.LiquidBack=closeTopSheet;
   par.addEventListener('input', function(){
     st.par = +par.value; oPar.textContent = st.par + '%';
     par.setAttribute('aria-valuetext', st.par + '%'); apply(); save();
+    /* the loop is parked while the lean is multiplied away, so raising the slider off 0 draws
+       the cards once at the position the pointer left them at, instead of waiting for the next
+       move to wake the loop */
+    kick();
   });
   /* the change event marks the end of a drag: the trailing write goes now, not a beat later */
   depth.addEventListener('change', flushSettings);
