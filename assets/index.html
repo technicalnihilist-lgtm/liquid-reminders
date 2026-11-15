@@ -821,6 +821,20 @@ window.LiquidBack=closeTopSheet;
       if(typeof it.fired!=="boolean"){ it.fired=flag(it.fired); dirty=true; }
       if(at!==undefined&&!(typeof at==="number"&&isFinite(at)&&at>=0)){ it.doneAt=0; dirty=true; }
     });
+    /* and a spent alert is handed back when the moment it was spent on is still ahead. `fired`
+       is the one thing that stops tick() and nextDue() from ever alerting a reminder again, and
+       it was taken exactly as the store carried it: a clock put back while the app was closed —
+       a phone whose time was wrong and got corrected, an NTP step, a manual fix — left a
+       reminder that had already rung with a due still in front of it and no alert left to give,
+       so it sat in the list silent on every later launch, since nothing ever cleared the flag.
+       tick() already hands the flag back when it watches the clock step back under the running
+       app; the same rule is applied here as the store is read, so an open reminder whose due is
+       still to come is armed again like any other. A reminder with no date, or a finished one,
+       has no moment to come and is left alone. */
+    var now=Date.now();
+    kept.forEach(function(it){
+      if(it.fired&&!it.done&&it.due>now){ it.fired=false; dirty=true; }
+    });
     /* and for the length: the cap is applied here, before anything is drawn, so a store of
        tens of thousands of rows cannot hold the page up on the first render */
     var capped=capList(kept);
@@ -855,11 +869,15 @@ window.LiquidBack=closeTopSheet;
     schedule();
     return trimmed;
   }
-  /* hand the whole list to the Android alarm scheduler */
+  /* hand the whole list to the Android alarm scheduler. `fired` goes with it because the shell
+     reads it: the signature it keeps of the list it has already armed covers it, so a reminder
+     whose spent alert the page has just handed back is a list the shell has not armed yet and
+     its alarm is rebuilt, and the catch-up delivery in resync() skips a reminder the page has
+     already alerted rather than posting the tray copy of an alert the user has just been given */
   function syncAll(){
     if(!BR)return;
     try{ BR.resync(JSON.stringify(items.map(function(i){
-      return {id:i.id,title:i.title,notes:i.notes||"",due:i.due||0,done:!!i.done};
+      return {id:i.id,title:i.title,notes:i.notes||"",due:i.due||0,done:!!i.done,fired:!!i.fired};
     }))); }catch(e){}
   }
   var $=function(s){return document.querySelector(s)};

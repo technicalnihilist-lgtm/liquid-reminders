@@ -193,11 +193,18 @@ public final class ReminderScheduler {
             }
             /* and the ones that came due while the alarms were being rebuilt are delivered
                now: an id the list no longer carries, or one that has been ticked off, is left
-               out with the rest, so deleting or completing a reminder still silences it */
+               out with the rest, so deleting or completing a reminder still silences it.
+               A reminder the page has already alerted is left out too: `fired` says the page's
+               own timer rang it, and the page's alert is the reminder while the app is on
+               screen — the rule ReminderReceiver already applies to its own copy — so a sync
+               that arrives a moment after the toast would otherwise post the tray copy of an
+               alert the user has just been given. A list from a build that does not send the
+               flag reads as false here, which is what it did before the flag existed. */
             for (int i = 0; i < a.length(); i++) {
                 JSONObject o = a.optJSONObject(i);
                 if (o == null) continue;
                 if (o.optBoolean("done", false)) continue;
+                if (o.optBoolean("fired", false)) continue;
                 long id = o.optLong("id", 0L);
                 if (!came.containsKey(id)) continue;
                 notify(c, id, o.optString("title", ""), o.optString("notes", ""));
@@ -227,6 +234,12 @@ public final class ReminderScheduler {
                 r.put("title", o.optString("title", ""));
                 r.put("notes", o.optString("notes", ""));
                 r.put("done", o.optBoolean("done", false));
+                /* `fired` is part of the signature because the page hands a spent alert back
+                   when a clock correction puts its moment in the future again: the reminder
+                   itself is unchanged, so without the flag the list would read as one already
+                   armed and the alarm the page has just given back would never be rebuilt.
+                   A list from a build that does not send it reads as false, as it did before. */
+                r.put("fired", o.optBoolean("fired", false));
                 rows.add(r.toString());
             }
         } catch (Exception e) {
