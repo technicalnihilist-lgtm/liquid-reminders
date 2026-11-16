@@ -1360,6 +1360,13 @@ window.LiquidBack=closeTopSheet;
   ft.addEventListener("keydown",function(e){if(e.key==="Enter"&&!save.disabled)save.click()});
   document.addEventListener("keydown",function(e){if(e.key==="Escape"&&sheet.classList.contains("open"))closeSheet()});
   save.onclick=function(){
+    /* saving is only saving while the sheet is up, the rule closeSheet() below already follows
+       for closing. The button stays on screen, and under the finger, for the length of the
+       sheet's slide-out, so a second tap that lands before it has gone — a double tap, or Enter
+       held down in the title field, whose keydown repeats and clicks this button on every
+       repeat — ran the whole add a second time and wrote the same reminder twice, with two ids
+       and two alarms. The first press closes the sheet, so every press after it returns here. */
+    if(!sheet.classList.contains("open")) return;
     /* nothing to save: the sheet stays open and the field keeps the focus, rather than a card
        being written with a blank title */
     var title=titleOf(ft.value);
