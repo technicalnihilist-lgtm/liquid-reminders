@@ -1031,41 +1031,44 @@ window.LiquidBack=closeTopSheet;
      that comes due. A Map keeps the number it was given. The walk of the children is written
      out here instead of going through itemKids(), which built a second array of every card on
      the page only for this loop to walk it again. */
+  /* The page's cards in document order and the empty state standing in for the list are read
+     here too, in the same walk, and handed back with the two maps. They were read separately,
+     by pageKids(), and that read happened inside every single placement: one walk of every card
+     on the page, for each of the four pages, for each reminder being placed. One card — what a
+     toggle, a delete and an add move — is a handful of walks either way. A burst of due
+     reminders places a card on each page for every one of them, though, so twenty reminders
+     coming due together (the app opened after a night with the phone off, a clock stepped
+     forward) walked the same five hundred cards twenty times over on every page to learn what
+     the first walk already knew. The walk happens once per page per move now, and the list it
+     produced is kept true as cards are taken off and put back, so a later placement reads the
+     answer a fresh walk would have given it — the only thing that changes between placements is
+     the list itself. */
   function pageIndex(order,page){
-    var posOf=new Map(), nodeOf=new Map(), kids=page.children, n, k;
+    var posOf=new Map(), nodeOf=new Map(), kids=[], empty=null, ch=page.children, n, k;
     for(k=0;k<order.length;k++) posOf.set(order[k].id,k);
-    for(k=0;k<kids.length;k++){
-      n=kids[k];
-      if(n.classList&&n.classList.contains("item")) nodeOf.set(+n.dataset.id,n);
+    for(k=0;k<ch.length;k++){
+      n=ch[k];
+      if(!n.classList) continue;
+      if(n.classList.contains("item")){ kids.push(n); nodeOf.set(+n.dataset.id,n); }
+      else if(!empty&&n.classList.contains("empty")) empty=n;
     }
-    return {pos:posOf,nodes:nodeOf};
+    return {pos:posOf,nodes:nodeOf,kids:kids,empty:empty};
   }
-  /* the page's cards in document order, and the empty state if one is standing in for the
-     list, read in a single pass. They used to be read apart from each other — a walk of the
-     children for the empty state and a second one for the cards — and the branch
-     that takes a card off a page walked them a third time only to ask whether anything was
-     left on it. That is one walk of every card on the page, three times over, for each of the
-     four pages, on every toggle, every delete, every reminder that comes due and every add;
-     and a burst of due reminders places a card on each page for each of them. */
-  function pageKids(page){
-    var kids=[], empty=null, n, k;
-    for(k=0;k<page.children.length;k++){
-      n=page.children[k];
-      if(n.classList&&n.classList.contains("item")) kids.push(n);
-      else if(!empty&&n.classList&&n.classList.contains("empty")) empty=n;
-    }
-    return {kids:kids,empty:empty};
-  }
+  /* one card, placed against the state pageIndex() read for its page and leaving that state as
+     the page now stands. Where the card lands is decided exactly as before — in front of the
+     first card on the page whose reminder comes later — but the cards it is measured against
+     come from the state instead of from another walk of the page. */
   function placeOnPage(page,i,idx,it){
     var pos=idx.pos.has(it.id)?idx.pos.get(it.id):-1;
     var node=idx.nodes.has(it.id)?idx.nodes.get(it.id):null;
-    var found=pageKids(page), kids=found.kids, empty=found.empty, n, k;
+    var kids=idx.kids, k;
     if(pos<0){
       if(!node) return;                       /* this page never showed it: nothing to do */
       page.removeChild(node);
+      for(k=0;k<kids.length;k++) if(kids[k]===node){ kids.splice(k,1); break; }
       /* the empty state only ever stands on a page that holds nothing else, so a page left
-         with no child at all is the one that has just lost its last card */
-      if(!page.firstElementChild) page.appendChild(emptyEl(i));
+         with no card and no empty state is the one that has just lost its last card */
+      if(!kids.length&&!idx.empty){ idx.empty=emptyEl(i); page.appendChild(idx.empty); }
       return;
     }
     if(!node) node=card(it);                  /* first time on this page */
@@ -1077,17 +1080,18 @@ window.LiquidBack=closeTopSheet;
         var t=node.querySelector(".txt small");
         if(t) t.className=(!it.done&&it.due<Date.now())?"late":"";
       }
+      /* the card is already on the page, so it comes out of the list before the place it
+         belongs in is looked for, and goes back in there */
+      for(k=0;k<kids.length;k++) if(kids[k]===node){ kids.splice(k,1); break; }
     }
-    if(empty) page.removeChild(empty);
-    var next=null;
+    if(idx.empty){ page.removeChild(idx.empty); idx.empty=null; }
+    var at=kids.length;
     for(k=0;k<kids.length;k++){
-      n=kids[k];
-      if(n===node) continue;
-      var id=+n.dataset.id;
-      var p=idx.pos.has(id)?idx.pos.get(id):-1;
-      if(p>pos){next=n;break}
+      var p=idx.pos.has(+kids[k].dataset.id)?idx.pos.get(+kids[k].dataset.id):-1;
+      if(p>pos){ at=k; break }
     }
-    if(next) page.insertBefore(node,next); else page.appendChild(node);
+    if(at<kids.length) page.insertBefore(node,kids[at]); else page.appendChild(node);
+    kids.splice(at,0,node);
   }
   /* the position and card maps for all four pages, read once for a whole move */
   function boardMaps(b){
@@ -1099,9 +1103,7 @@ window.LiquidBack=closeTopSheet;
     for(var i=0;i<4;i++) placeOnPage($("#p"+i),i,idx[i],it);
   }
   function moveCard(it){
-    var b=board(), idx=boardMaps(b);
-    placeEverywhere(it,idx);
-    counts(b);
+    moveCards([it]);
   }
   /* the same move for a batch of reminders that changed together. A burst of overdue ones — the
      app opened after a night with the phone off, a clock stepped forward — used to rebuild the
