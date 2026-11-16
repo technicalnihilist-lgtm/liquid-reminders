@@ -1370,11 +1370,21 @@ window.LiquidBack=closeTopSheet;
        that is a thousand nodes thrown away and made again, at the moment the sheet closes and
        the new card animates in. moveCard() is what a toggle and a delete already use, and an
        add is the same shape of change: the one reminder is placed on each page it belongs to
-       and every other card is left where it is. The cap is the exception — adding to a list
-       already at it drops the oldest reminder, whose card must come off the pages as well, so
-       persist() says how many rows it took and that case still draws all four pages. */
+       and every other card is left where it is. The cap was the exception — adding to a list
+       already at it drops the oldest reminder, whose card must come off the pages as well, and
+       that case drew all four pages from scratch. The cap drops those reminders from the front
+       of the list, though, and placeOnPage() already takes the card of a reminder that is no
+       longer in the page's order off every page it stands on — it is exactly what a delete
+       does — so an add at the cap is the same two-card move as any other add: the dropped
+       reminders leave and the new one arrives. The whole spill goes to one moveCards(), so the
+       board is sorted and its maps built once, as they are for a burst of overdue reminders.
+       Only a list that was over the cap by more than this add falls back to drawing all four
+       pages, and no path produces one: load() and persist() both cap. */
+    var spill=items.length>MAX_ITEMS?items.slice(0,items.length-MAX_ITEMS):[];
     var dropped=persist();
-    if(dropped) render(); else moveCard(it);
+    if(dropped&&dropped===spill.length){ spill.push(it); moveCards(spill); }
+    else if(dropped) render();
+    else moveCard(it);
     closeSheet();syncAll();
     goto(due&&due>endOfToday()?1:0);
   };
