@@ -1391,6 +1391,41 @@ window.LiquidBack=closeTopSheet;
 
   /* ---- alerts while the app is open (no internet needed) ---- */
   var toast=$("#toast"),tt;
+  /* one toast, and a burst of reminders coming due at the same moment. The toast is a single
+     element and every alert rewrote it where it stood, so three reminders due at 9:00 showed the
+     third one's title and nothing else: the two before it were replaced before they could be
+     read, and the tray copy that would have said them again is not there while the app is on
+     screen — the shell drops it (ReminderReceiver returns when the page is in front) and the sync
+     skips a reminder the page has already alerted — so those two rang nowhere at all and sat in
+     the list overdue and silent. An alert now takes its turn: one is on the toast for its six
+     seconds, the rest wait, and each is shown in the order it came due. The words, the length and
+     the look of the toast do not change, and a queue of one shows exactly what it showed before;
+     the wait behind it is the only thing that is new. A turn is shorter while another alert is
+     still waiting, so a burst is worked through in a reasonable time, and a tap on the toast
+     dismisses the one that is up and brings the next forward, so the user sets the pace. The
+     refused save and the notifications hint use the same element: `toastUntil` is when whatever
+     is on the toast is done, and a waiting alert holds off until then rather than talking over
+     them. */
+  var toastQ=[],toastT=0,toastUntil=0;
+  function toastShow(title,sub,ms){
+    $("#t-title").textContent=title;$("#t-sub").textContent=sub;
+    toast.classList.add("show");
+    clearTimeout(tt);tt=setTimeout(function(){toast.classList.remove("show")},ms);
+    toastUntil=Date.now()+ms;
+  }
+  function pumpToast(){
+    clearTimeout(toastT);toastT=0;
+    var wait=toastUntil-Date.now();
+    if(wait>0){ if(toastQ.length) toastT=setTimeout(pumpToast,Math.min(wait+140,2147483647)); return; }
+    /* the next alert that is still a reminder in the list: one deleted while it waited has
+       nothing left to announce */
+    var it=null,q;
+    while(toastQ.length&&!it){ q=toastQ.shift(); if(items.indexOf(q)>=0) it=q; }
+    if(!it)return;
+    var ms=toastQ.length?2400:6000;
+    toastShow(it.title,"Reminder is due now",ms);
+    if(toastQ.length) toastT=setTimeout(pumpToast,ms+140);
+  }
   /* the Notification API is not there just because its name is: Android's WebView defines
      `window.Notification` and then throws "Illegal constructor" when it is used, and an
      embedded or locked-down page can carry the name with nothing usable behind it — in both
@@ -1430,10 +1465,9 @@ window.LiquidBack=closeTopSheet;
   function saveFailed(e){
     var name=(e&&e.name)||"", code=e&&e.code;
     var full=name==="QuotaExceededError"||name==="NS_ERROR_DOM_QUOTA_REACHED"||code===22||code===1014;
-    $("#t-title").textContent=full?"Not saved":"Couldn't save";
-    $("#t-sub").textContent=full?"Storage is full. Free some space and try again."
-                               :"The change could not be saved.";
-    toast.classList.add("show");clearTimeout(tt);tt=setTimeout(function(){toast.classList.remove("show")},6000);
+    toastShow(full?"Not saved":"Couldn't save",
+              full?"Storage is full. Free some space and try again."
+                  :"The change could not be saved.",6000);
     try{ console.info("[store] write refused ("+(name||"unknown")+")"); }catch(e2){}
   }
   /* the OS can refuse a reminder's notification — POST_NOTIFICATIONS left unanswered on
@@ -1445,18 +1479,18 @@ window.LiquidBack=closeTopSheet;
   function notifyHint(){
     try{ if(localStorage.getItem(KEY+".notifHint")) return; }catch(e){}
     try{ localStorage.setItem(KEY+".notifHint","1"); }catch(e){}
-    $("#t-title").textContent="Notifications are off";
-    $("#t-sub").textContent="Reminders won't ring until you turn them on.";
-    toast.classList.add("show");clearTimeout(tt);tt=setTimeout(function(){toast.classList.remove("show")},6000);
+    toastShow("Notifications are off","Reminders won't ring until you turn them on.",6000);
   }
   window.LiquidNotifyHint=notifyHint;
+  /* the buzz and the tray copy belong to the moment the reminder came due, so they happen here;
+     only the words on the toast wait their turn */
   function alertFor(it){
-    $("#t-title").textContent=it.title;$("#t-sub").textContent="Reminder is due now";
-    toast.classList.add("show");clearTimeout(tt);tt=setTimeout(function(){toast.classList.remove("show")},6000);
     if(navigator.vibrate)try{navigator.vibrate([120,60,120])}catch(e){}
     showNotify(it.title);
+    toastQ.push(it);pumpToast();
   }
-  toast.onclick=function(){toast.classList.remove("show")};
+  /* a tap dismisses what is up and lets the next waiting alert through at once */
+  toast.onclick=function(){toast.classList.remove("show");clearTimeout(tt);toastUntil=0;pumpToast()};
   /* the wall clock can be put back under the app — a manual correction, a time-zone change, an
      NTP step — and a reminder that has already fired keeps fired:true, so its moment comes round
      again with the alert already spent and it stays silent for good. A backward step is told
