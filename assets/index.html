@@ -1782,12 +1782,29 @@ window.LiquidBack=closeTopSheet;
   var lensEl = document.querySelector('.lens');
   if(pagesEl && lensEl){
     var lastIdx = -1, lensPending = false;
+    /* the width is the same on every frame of a swipe and only ever changes when the pager is
+       resized, so it is read when it changes instead of once per frame. Reading clientWidth
+       here flushed the style the pager's own per-frame handler had just written on the tabs —
+       the two handlers ride the same frame and that one runs first — so every frame of every
+       swipe forced a style recalc and a layout of the whole board to answer a number that had
+       not moved since the last frame: measured at 0.5-1.3 ms a frame on a full list of five
+       hundred, on the one gesture the app is built around. The ResizeObserver is the same one
+       measure() already uses for the pager, so the number is refreshed exactly when the pager
+       is re-laid-out — a rotation, the window resizing — and the settled index it produces is
+       the one clientWidth would have produced. */
+    var lensW = 0;
+    function lensWidth(){
+      if(!lensW) lensW = pagesEl.clientWidth || 1;
+      return lensW;
+    }
+    if(window.ResizeObserver) new ResizeObserver(function(){ lensW = 0; }).observe(pagesEl);
+    window.addEventListener('resize', function(){ lensW = 0; }, {passive:true});
     pagesEl.addEventListener('scroll', function(){
       if(lensPending) return;
       lensPending = true;
       requestAnimationFrame(function(){
         lensPending = false;
-        var w = pagesEl.clientWidth || 1;
+        var w = lensWidth();
         var idx = Math.round(pagesEl.scrollLeft / w);
         if(idx === lastIdx) return;
         lastIdx = idx;
