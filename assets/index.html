@@ -712,13 +712,34 @@ window.LiquidBack=closeTopSheet;
     }
     return freed;
   }
+  /* the furthest instant a Date can hold. The language gives a Date 100,000,000 days either
+     side of the epoch, so 8.64e15 ms is the last millisecond that is a moment at all and
+     anything past it is not a time that exists. Read off the Date object itself, once, so the
+     bound is the engine's own rather than a number typed here, with the literal as the answer
+     for an engine that somehow refuses it. */
+  var DUE_MAX=(function(){
+    var t=new Date(8640000000000000).getTime();
+    return (isFinite(t)&&t>0)?t:8640000000000000;
+  })();
   /* a due is stored as milliseconds since the epoch, 0 meaning "no date". A numeric string
-     is read as that number; anything else that is not a finite positive number is 0. */
+     is read as that number; anything else that is not a finite positive number is 0.
+     It also has to be a moment a date can represent. Every other shape a due arrives in was
+     repaired here — a NaN, a negative, a string that is not a number — but a number past
+     DUE_MAX was taken as it came, and it is a due that no date can hold: `fmt()` refuses to
+     print a date it cannot represent, so the card was drawn with no date line at all while
+     the reminder still counted as dated — `board()` filed it under Upcoming for good, on a
+     page of reminders that all say when they are for, and `syncAll()` handed the number to
+     the shell, whose `resync()` armed an alarm for it that can never fire. It is the shape a
+     due takes when it was written in microseconds or nanoseconds, or by a store edited by
+     hand. Such a value is read as no date now, which is what every other unreadable due
+     becomes: the reminder is kept, it says nothing about when, and it sits with the undated
+     ones instead of under Upcoming. Nothing the interface can produce is out of range, so
+     nothing on screen changes for a list the app wrote itself. */
   function dueNum(v){
     var n=NaN;
     if(typeof v==="number") n=v;
     else if(typeof v==="string"&&v.trim()!=="") n=Number(v);
-    return (isFinite(n)&&n>0)?n:0;
+    return (isFinite(n)&&n>0&&n<=DUE_MAX)?n:0;
   }
   /* a flag is stored as true or false, and read as one by everything that touches it: the split
      in board(), the guard in tick(), the class on the card. A value that is not already a boolean
