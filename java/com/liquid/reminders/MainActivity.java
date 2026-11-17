@@ -1,11 +1,14 @@
 package com.liquid.reminders;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
@@ -285,6 +288,29 @@ public class MainActivity extends Activity {
                     ensureNotifPermission();
                 }
             });
+        }
+
+        /* The buzz for a reminder that comes due while the page is in front. The page asks for it
+           from a timer, not from a tap, and a WebView refuses navigator.vibrate unless the page
+           has been touched since it loaded — the call is dropped and the refusal logged — so a
+           reminder that came due with the app open but untouched rang with the toast alone. The
+           shell holds the VIBRATE permission and owes the buzz to the moment the reminder was
+           due, so the page asks for it here instead. The pattern is the one the page handed to
+           navigator.vibrate, with the leading zero the Vibration API reads as a delay, and a
+           phone with no vibrator, or one that refuses, simply says nothing. */
+        @JavascriptInterface
+        public void buzz() {
+            try {
+                Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                if (v == null || !v.hasVibrator()) return;
+                long[] pattern = {0, 120, 60, 120};
+                if (Build.VERSION.SDK_INT >= 26) {
+                    v.vibrate(VibrationEffect.createWaveform(pattern, -1));
+                } else {
+                    v.vibrate(pattern, -1);
+                }
+            } catch (Exception ignored) {
+            }
         }
 
         @JavascriptInterface

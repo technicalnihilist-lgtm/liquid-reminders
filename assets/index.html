@@ -1492,10 +1492,28 @@ window.LiquidBack=closeTopSheet;
     toastShow("Notifications are off","Reminders won't ring until you turn them on.",6000);
   }
   window.LiquidNotifyHint=notifyHint;
+  /* the buzz belongs to the moment the reminder came due, so it is asked for here — and it is
+     asked from a timer, not from a tap. A WebView refuses navigator.vibrate from a page that has
+     not been touched since it loaded: the call is dropped and the refusal is logged
+     ("Blocked call to navigator.vibrate because user hasn't tapped on the frame yet"), so a
+     reminder that came due with the app open but untouched — the list opened on one already
+     overdue, or the phone left sitting on it — rang with the toast alone and no buzz at all,
+     which is the half of the alert a pocket or a glance away from the screen relies on. The
+     shell holds the VIBRATE permission and owes the buzz to the moment, so the page asks it
+     there. Where there is no shell the page's own call is still the only one there is, and it
+     is skipped only when the browser has already refused it, so the buzz that used to play
+     after a tap still plays and the one that never could is no longer attempted. */
+  function buzz(){
+    if(BR&&BR.buzz){ try{ BR.buzz(); return; }catch(e){} }
+    try{
+      if(navigator.userActivation&&navigator.userActivation.hasBeenActive===false) return;
+      if(navigator.vibrate) navigator.vibrate([120,60,120]);
+    }catch(e){}
+  }
   /* the buzz and the tray copy belong to the moment the reminder came due, so they happen here;
      only the words on the toast wait their turn */
   function alertFor(it){
-    if(navigator.vibrate)try{navigator.vibrate([120,60,120])}catch(e){}
+    buzz();
     showNotify(it.title);
     toastQ.push(it);pumpToast();
   }

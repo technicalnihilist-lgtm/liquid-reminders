@@ -161,6 +161,7 @@ The HTML design already worked in a browser. These are the pieces that make it a
 | `localStorage` only | Same storage, but the reminder list is mirrored to `SharedPreferences` so the alarm scheduler can read it without the page |
 | No safe-area insets in a WebView | `MainActivity` measures the status/navigation/IME insets and feeds them to CSS as `--sat` / `--sab` |
 | A refused notification makes a due reminder look forgotten | Once the permission answer is known the shell tells the page, which says so in its own toast — once per install |
+| `navigator.vibrate` is refused until the page has been tapped | The page asks the shell for the buzz instead, so a reminder coming due with the app open but untouched still buzzes |
 
 The JS layer talks to native code through a small bridge exposed as `window.AndroidBridge`:
 
@@ -169,14 +170,15 @@ BR.schedule(id, title, notes, dueMillis)   // register one alarm
 BR.cancel(id)                              // drop one alarm
 BR.resync(json)                            // rebuild all alarms from the current list
 BR.askNotifications()                      // request POST_NOTIFICATIONS on Android 13+
+BR.buzz()                                  // the alert's buzz, for a reminder coming due
 BR.now()                                   // the device clock, in milliseconds
 ```
 
 `syncAll()` in the page calls `resync` after every add, toggle or delete, so the native
 schedule always mirrors what is on screen. The shell keeps a signature of the last list it
 synced and skips the rebuild when a new one is identical, so opening the app costs no alarm
-work. Only `resync` and `askNotifications` are called today; `schedule` and `cancel` stay part
-of the interface but the page hands over the whole list instead.
+work. Only `resync`, `askNotifications` and `buzz` are called today; `schedule` and `cancel` stay
+part of the interface but the page hands over the whole list instead.
 
 ## Project layout
 
