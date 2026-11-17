@@ -1531,11 +1531,17 @@ window.LiquidBack=closeTopSheet;
     try{
       /* after a step back, a reminder whose due is in the future again has a moment still to
          come, so its alert is handed back and the timer is re-armed for it; one that is still
-         overdue keeps its spent alert, so nothing rings twice */
+         overdue keeps its spent alert, so nothing rings twice.
+         The shell is told as well, and it has to be: `fired` is part of the signature it keeps
+         of the list it has armed, and an alert handed back here is a reminder it has not armed
+         — the alarm that fired for it was consumed by the receiver, so the tray copy of a
+         reminder the page has just handed back would never be built. The repairs load() makes
+         are handed over by the syncAll() at the end of the first draw; this one happens long
+         after that, so it is handed over here, and the reminder rings with the app closed too. */
       if(clockWentBack()){
         var again=false;
         items.forEach(function(it){if(!it.done&&it.fired&&it.due&&it.due>now){it.fired=false;again=true}});
-        if(again)persist();
+        if(again){persist();syncAll();}
       }
     }catch(e){ recover(e,"clock") }
     try{
