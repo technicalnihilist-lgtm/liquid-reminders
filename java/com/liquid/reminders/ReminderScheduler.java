@@ -17,7 +17,9 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /** Stores reminders that have a due time and registers them with the system alarm clock. */
 public final class ReminderScheduler {
@@ -28,6 +30,7 @@ public final class ReminderScheduler {
     static final String KEY_EXACT = "exact_alarms_granted";
     static final String KEY_ASKED = "notif_permission_asked";
     static final String KEY_SYNC = "last_sync_signature";
+    static final String KEY_TRAY = "tray_ids";
 
     /* Whether the app is on screen. A reminder that comes due while it is gets the page's own
        in-app alert at that moment, and the system alarm fires for the same reminder at the same
@@ -129,6 +132,64 @@ public final class ReminderScheduler {
         sp.edit().remove(PREFIX + id).apply();
         AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
         if (am != null) am.cancel(fireIntent(c, id));
+        /* the alarm is not the only copy a cancelled reminder leaves behind: a notification it
+           already posted is taken down with it */
+        Set<Long> one = new HashSet<Long>();
+        one.add(id);
+        dropTray(c, sp, one);
+    }
+
+    /* The ids whose notification is standing in the tray. A reminder's notification is posted
+       under its own id (trayId) and nothing ever took it down again: setAutoCancel(true) removes
+       it only when the user taps it, so a reminder that rang and was then ticked off — or
+       deleted — in the app left its notification in the tray for good, and a tap on it opened
+       the app on a list with nothing due. The ids are kept beside the store, and resync(), which
+       the page calls after every add, a toggle and a delete and again as it loads, takes down the
+       copy of every reminder that is now finished or no longer in the list. Cancelling a
+       notification that is not there costs nothing, so an id left here by a tap that already
+       cleared its own notification is harmless, and the set is pruned by the same pass that
+       cancels. It is a key of its own rather than one of the item_* entries, so clearAll() — the
+       rebuild resync() does on every change — does not take it with them. */
+    private static Set<Long> traySet(SharedPreferences sp) {
+        Set<Long> out = new HashSet<Long>();
+        try {
+            JSONArray a = new JSONArray(sp.getString(KEY_TRAY, "[]"));
+            for (int i = 0; i < a.length(); i++) {
+                long id = a.optLong(i, 0L);
+                if (id != 0L) out.add(id);
+            }
+        } catch (Exception ignored) {
+        }
+        return out;
+    }
+
+    private static void writeTray(SharedPreferences sp, Set<Long> ids) {
+        JSONArray a = new JSONArray();
+        for (Long id : ids) a.put(id.longValue());
+        sp.edit().putString(KEY_TRAY, a.toString()).apply();
+    }
+
+    /* one notification has just been posted: its id joins the set, and the store is written only
+       when it was not already there */
+    private static void rememberTray(SharedPreferences sp, long id) {
+        Set<Long> ids = traySet(sp);
+        if (ids.add(id)) writeTray(sp, ids);
+    }
+
+    /* these reminders are no longer owed a place in the tray: each notification comes down and
+       its id leaves the set, in one write for the whole group */
+    private static void dropTray(Context c, SharedPreferences sp, Set<Long> ids) {
+        if (ids.isEmpty()) return;
+        NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+        for (Long id : ids) {
+            if (nm == null) continue;
+            try {
+                nm.cancel(trayId(id));
+            } catch (Exception ignored) {
+            }
+        }
+        Set<Long> kept = traySet(sp);
+        if (kept.removeAll(ids)) writeTray(sp, kept);
     }
 
     /* Drop every reminder the shell is holding, and the alarms armed for them, and nothing
@@ -231,6 +292,22 @@ public final class ReminderScheduler {
                 if (!came.containsKey(id)) continue;
                 notify(c, id, o.optString("title", ""), o.optString("notes", ""));
             }
+            /* and the tray is brought into line with the list in the same pass: a reminder that
+               is finished, or that the list no longer carries, is one whose notification should
+               not still be standing there — the user ticked it off or deleted it, and tapping
+               what is left of it opens the app on a list with nothing due. Every other one keeps
+               its copy: a reminder that has rung and is still open is still owed it until the
+               user acts on it, and one that has not rung yet has nothing in the tray. */
+            Set<Long> open = new HashSet<Long>();
+            for (int i = 0; i < a.length(); i++) {
+                JSONObject o = a.optJSONObject(i);
+                if (o == null) continue;
+                if (o.optBoolean("done", false)) continue;
+                open.add(o.optLong("id", 0L));
+            }
+            Set<Long> gone = traySet(sp);
+            gone.removeAll(open);
+            dropTray(c, sp, gone);
             /* stored only once the alarms above are all armed, so a sync that failed halfway
                is rebuilt next time rather than skipped over */
             sp.edit().putString(KEY_SYNC, signature).apply();
@@ -468,6 +545,9 @@ public final class ReminderScheduler {
 
         try {
             nm.notify(trayId(id), b.build());
+            /* the id is kept so resync() can take this notification down again once the
+               reminder is ticked off or deleted */
+            rememberTray(c.getSharedPreferences(PREFS, Context.MODE_PRIVATE), id);
         } catch (SecurityException ignored) {
             // Notification permission revoked by the user.
         }

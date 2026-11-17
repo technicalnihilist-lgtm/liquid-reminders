@@ -162,6 +162,7 @@ The HTML design already worked in a browser. These are the pieces that make it a
 | No safe-area insets in a WebView | `MainActivity` measures the status/navigation/IME insets and feeds them to CSS as `--sat` / `--sab` |
 | A refused notification makes a due reminder look forgotten | Once the permission answer is known the shell tells the page, which says so in its own toast — once per install |
 | `navigator.vibrate` is refused until the page has been tapped | The page asks the shell for the buzz instead, so a reminder coming due with the app open but untouched still buzzes |
+| A notification outlives the reminder it announced | `notify()` keeps the ids it has posted, and `resync()` takes the tray copy down once the reminder is ticked off or deleted |
 
 The JS layer talks to native code through a small bridge exposed as `window.AndroidBridge`:
 
