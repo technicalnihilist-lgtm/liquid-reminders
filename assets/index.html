@@ -948,15 +948,29 @@ window.LiquidBack=closeTopSheet;
       };
     }catch(e){ return null }
   })();
-  function fmt(t){
-    var d=new Date(t), n=new Date();
+  /* the local day every due line is measured against. "Today", "Tomorrow", "Yesterday" and the
+     year on the date are all decided by comparing the reminder's day with today's, and fmt()
+     worked today's out for itself on every call: a Date for now, two more Dates for the two
+     midnights and six component reads, so drawing a page of five hundred built fifteen hundred
+     Dates to answer a question whose answer is the same for all five hundred of them, and whose
+     answer can only change when the local date does — which rearmDay() already redraws for. It is
+     worked out once for a draw and handed to each card; a card built on its own, as a toggle
+     places one, works it out for itself, which is one card's worth of work and no more. The
+     strings are the same: the same two local midnights, the same difference, the same year. */
+  function todayMark(){
+    var n=new Date();
+    return {t:new Date(n.getFullYear(),n.getMonth(),n.getDate()).getTime(), y:n.getFullYear()};
+  }
+  function fmt(t, td){
+    var d=new Date(t);
     if(!isFinite(d.getTime())) return "";
+    if(!td) td=todayMark();
     var tm=DF?DF.time.format(d):d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
-    var diff=Math.round((new Date(d.getFullYear(),d.getMonth(),d.getDate())-new Date(n.getFullYear(),n.getMonth(),n.getDate()))/864e5);
+    var diff=Math.round((new Date(d.getFullYear(),d.getMonth(),d.getDate())-td.t)/864e5);
     if(diff===0) return "Today, "+tm; if(diff===1) return "Tomorrow, "+tm; if(diff===-1) return "Yesterday, "+tm;
     var o={weekday:"short",month:"short",day:"numeric"};
-    if(d.getFullYear()!==n.getFullYear()) o.year="numeric";
-    return (DF?(d.getFullYear()!==n.getFullYear()?DF.dayYear:DF.day).format(d):d.toLocaleDateString([],o))+", "+tm;
+    if(d.getFullYear()!==td.y) o.year="numeric";
+    return (DF?(d.getFullYear()!==td.y?DF.dayYear:DF.day).format(d):d.toLocaleDateString([],o))+", "+tm;
   }
   function sortFn(a,b){return (a.due||9e15)-(b.due||9e15)}
   var EMPTY=[
@@ -977,7 +991,7 @@ window.LiquidBack=closeTopSheet;
      the state, because deleting does the same thing to a done reminder as to an open one. */
   function delLabel(it){return "Delete reminder: "+it.title}
   /* build one card as DOM nodes, so nothing is parsed back out of a string */
-  function card(it){
+  function card(it, td){
     var late=!it.done&&it.due&&it.due<Date.now();
     var el=document.createElement("article");
     el.className="item glass"+(it.done?" done":"");
@@ -988,7 +1002,7 @@ window.LiquidBack=closeTopSheet;
     var txt=document.createElement("div");txt.className="txt";
     var b=document.createElement("b");b.textContent=it.title;txt.appendChild(b);
     /* a due value with no representable date prints nothing, so no empty line is left on the card */
-    if(it.due){var s=fmt(it.due);if(s){var t=document.createElement("small");t.className=late?"late":"";t.textContent=s;txt.appendChild(t)}}
+    if(it.due){var s=fmt(it.due, td);if(s){var t=document.createElement("small");t.className=late?"late":"";t.textContent=s;txt.appendChild(t)}}
     if(it.notes){var n=document.createElement("small");n.textContent=it.notes;txt.appendChild(n)}
     var del=document.createElement("button");
     del.className="del";del.dataset.a="del";del.setAttribute("aria-label",delLabel(it));del.textContent="×";
@@ -1031,10 +1045,10 @@ window.LiquidBack=closeTopSheet;
     $("#sub").textContent=(DF?DF.longDay.format(new Date()):new Date().toLocaleDateString([],{weekday:"long",month:"long",day:"numeric"}))+(b.open?" · "+b.open+" to do":"");
   }
   function render(){
-    var b=board(), lists=b.pages;
+    var b=board(), lists=b.pages, td=todayMark();
     lists.forEach(function(l,i){
       var page=$("#p"+i), frag=document.createDocumentFragment();
-      if(l.length){ l.forEach(function(it){ frag.appendChild(card(it)) }) }
+      if(l.length){ l.forEach(function(it){ frag.appendChild(card(it, td)) }) }
       else frag.appendChild(emptyEl(i));
       page.textContent=""; page.appendChild(frag);
     });
