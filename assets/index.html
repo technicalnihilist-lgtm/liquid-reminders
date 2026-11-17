@@ -1044,16 +1044,26 @@ window.LiquidBack=closeTopSheet;
      produced is kept true as cards are taken off and put back, so a later placement reads the
      answer a fresh walk would have given it — the only thing that changes between placements is
      the list itself. */
+  /* Each card's id is read here, once, and kept beside it in `ids`: the walk below already reads
+     it to key the card map, so the number is there for nothing, while the place a card belongs in
+     is looked for by walking the page's cards and asking each one where its reminder sits — and
+     `dataset.id` is a string, so that walk turned every id back into a number on every placement.
+     On a page of five hundred cards one add therefore made up to five hundred of those
+     conversions, on each of the four pages, and a burst of overdue reminders did it again for
+     every card in the burst — tens of thousands of them for a move that reorders a handful. The
+     numbers are kept in step with the cards as they are taken off and put back, so `ids[k]` is
+     the number `+kids[k].dataset.id` would have given, and the place a card lands in is the same
+     one it landed in before. */
   function pageIndex(order,page){
-    var posOf=new Map(), nodeOf=new Map(), kids=[], empty=null, ch=page.children, n, k;
+    var posOf=new Map(), nodeOf=new Map(), kids=[], ids=[], empty=null, ch=page.children, n, k, id;
     for(k=0;k<order.length;k++) posOf.set(order[k].id,k);
     for(k=0;k<ch.length;k++){
       n=ch[k];
       if(!n.classList) continue;
-      if(n.classList.contains("item")){ kids.push(n); nodeOf.set(+n.dataset.id,n); }
+      if(n.classList.contains("item")){ id=+n.dataset.id; kids.push(n); ids.push(id); nodeOf.set(id,n); }
       else if(!empty&&n.classList.contains("empty")) empty=n;
     }
-    return {pos:posOf,nodes:nodeOf,kids:kids,empty:empty};
+    return {pos:posOf,nodes:nodeOf,kids:kids,ids:ids,empty:empty};
   }
   /* one card, placed against the state pageIndex() read for its page and leaving that state as
      the page now stands. Where the card lands is decided exactly as before — in front of the
@@ -1062,11 +1072,11 @@ window.LiquidBack=closeTopSheet;
   function placeOnPage(page,i,idx,it){
     var pos=idx.pos.has(it.id)?idx.pos.get(it.id):-1;
     var node=idx.nodes.has(it.id)?idx.nodes.get(it.id):null;
-    var kids=idx.kids, k;
+    var kids=idx.kids, ids=idx.ids, k;
     if(pos<0){
       if(!node) return;                       /* this page never showed it: nothing to do */
       page.removeChild(node);
-      for(k=0;k<kids.length;k++) if(kids[k]===node){ kids.splice(k,1); break; }
+      for(k=0;k<kids.length;k++) if(kids[k]===node){ kids.splice(k,1); ids.splice(k,1); break; }
       /* the empty state only ever stands on a page that holds nothing else, so a page left
          with no card and no empty state is the one that has just lost its last card */
       if(!kids.length&&!idx.empty){ idx.empty=emptyEl(i); page.appendChild(idx.empty); }
@@ -1083,16 +1093,16 @@ window.LiquidBack=closeTopSheet;
       }
       /* the card is already on the page, so it comes out of the list before the place it
          belongs in is looked for, and goes back in there */
-      for(k=0;k<kids.length;k++) if(kids[k]===node){ kids.splice(k,1); break; }
+      for(k=0;k<kids.length;k++) if(kids[k]===node){ kids.splice(k,1); ids.splice(k,1); break; }
     }
     if(idx.empty){ page.removeChild(idx.empty); idx.empty=null; }
     var at=kids.length;
     for(k=0;k<kids.length;k++){
-      var p=idx.pos.has(+kids[k].dataset.id)?idx.pos.get(+kids[k].dataset.id):-1;
+      var p=idx.pos.has(ids[k])?idx.pos.get(ids[k]):-1;
       if(p>pos){ at=k; break }
     }
     if(at<kids.length) page.insertBefore(node,kids[at]); else page.appendChild(node);
-    kids.splice(at,0,node);
+    kids.splice(at,0,node); ids.splice(at,0,it.id);
   }
   /* the position and card maps for all four pages, read once for a whole move */
   function boardMaps(b){
