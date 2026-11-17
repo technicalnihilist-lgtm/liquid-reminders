@@ -673,6 +673,21 @@ window.LiquidBack=closeTopSheet;
      the cap is set aside under KEY+".overflow" (like the unreadable value above) and the
      newest MAX_ITEMS are the ones kept. */
   var MAX_ITEMS=500;
+  /* a reminder's two lines of text have a length too, and it is written once, in the markup:
+     the title field carries maxlength="120" and the notes field maxlength="200", so the field
+     that writes a value is also the place that says how long it may be — the same rule the
+     palette follows off the stylesheet and the sliders off their own min/max. Read here, once,
+     because load() runs before $ is assigned. Nothing typed in the app can be longer than this,
+     so the limit is invisible to it; what it holds back is the other way a value arrives — a
+     store written by an older build, or one edited by hand — where a title of fifty thousand
+     characters becomes a card with no end, a label both of its buttons carry that a screen
+     reader has to read out in full, a toast with nowhere to put it and a JSON string of that
+     size handed to the shell on every change. A field that is not there caps nothing. */
+  var TITLE_MAX=fieldMax("f-title"), NOTES_MAX=fieldMax("f-notes");
+  function fieldMax(id){
+    var el=document.getElementById(id), n=el?parseInt(el.getAttribute("maxlength"),10):NaN;
+    return (isFinite(n)&&n>0)?n:Infinity;
+  }
   function capList(list){
     if(list.length<=MAX_ITEMS) return list;
     var keep=list.slice(list.length-MAX_ITEMS), drop=list.slice(0,list.length-MAX_ITEMS);
@@ -736,13 +751,22 @@ window.LiquidBack=closeTopSheet;
     for(var k=0;k<COLORS.length;k++) if(COLORS[k]===s) return COLORS[k];
     return COLORS[0];
   }
+  /* notes are read the same way a title is — trimmed, and kept to the length the field that
+     writes them allows — so a value put on the field by something other than a keypress, which
+     is the one case maxlength does not hold back, cannot be stored longer than one typed there */
+  function notesOf(v){
+    var s=(typeof v==="string")?v.trim():"";
+    return s.length>NOTES_MAX?s.slice(0,NOTES_MAX):s;
+  }
   /* a title that is only whitespace is not a title: a card built from one reads as blank and
      cannot be told apart from any other. The invisible marks a paste can carry (zero-width
-     space, joiners, word joiner, byte-order mark) are dropped, and what is left is trimmed,
-     so the check on the save button and the value that is stored are the same thing. */
+     space, joiners, word joiner, byte-order mark) are dropped, and what is left is trimmed and
+     kept to the length the field allows, so the check on the save button, the value that is
+     stored and the value a card is built from are all one and the same thing. */
   function titleOf(v){
     var s=(typeof v==="string")?v:"";
-    return s.replace(/[\u200b-\u200d\u2060\ufeff]/g,"").trim();
+    s=s.replace(/[\u200b-\u200d\u2060\ufeff]/g,"").trim();
+    return s.length>TITLE_MAX?s.slice(0,TITLE_MAX):s;
   }
   /* read the stored list. Anything that is not a JSON array of objects is set aside and
      the store is rewritten clean, so one bad value cannot leave the app empty on every
@@ -799,7 +823,10 @@ window.LiquidBack=closeTopSheet;
       var t=(typeof it.title==="string")?titleOf(it.title)
            :((typeof it.title==="number"&&isFinite(it.title))?String(it.title):"");
       if(t!==it.title){ it.title=t; dirty=true; }
+      /* notes are kept to the length their own field allows, for the same reason as the title:
+         a card has one line for them and the field could never have produced more */
       var n=(typeof it.notes==="string")?it.notes:"";
+      if(n.length>NOTES_MAX) n=n.slice(0,NOTES_MAX);
       if(n!==it.notes){ it.notes=n; dirty=true; }
       /* the two flags a card and the tick act on, and the stamp the Done page orders by, are kept
          to their own shapes for the same reason as the due, the colour and the title above. Both
@@ -1383,7 +1410,7 @@ window.LiquidBack=closeTopSheet;
     var title=titleOf(ft.value);
     if(!title){ save.disabled=true; ft.focus(); return; }
     var v=$("#f-due").value, due=v?new Date(v).getTime():0;
-    var it={id:newId(),title:title,notes:$("#f-notes").value.trim(),due:due,color:color,done:false,fired:false};
+    var it={id:newId(),title:title,notes:notesOf($("#f-notes").value),due:due,color:color,done:false,fired:false};
     items.push(it);
     /* an add is one new card, not a redraw of the whole board. render() emptied all four pages
        and built a fresh card for every reminder on each of them — on a list near the 500 cap
