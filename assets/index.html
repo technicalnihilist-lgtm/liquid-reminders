@@ -2136,6 +2136,19 @@ window.LiquidBack=closeTopSheet;
   document.addEventListener('pointermove', function(e){
     if(seenOrient) return;
     ptrX = e.clientX; ptrY = e.clientY;
+    /* with the lean multiplied away there is no frame worth riding: kick() takes the target as
+       the current position and stops, and --px and --py are not written in that state at all, so
+       the frame this move asked for drew nothing. The same two values are worked out here, and
+       the parked position with them, so the loop is left exactly where it would have left it —
+       raising the Parallax slider off 0 still shows the cards where they were. What is left is
+       the setting that asks for less motion, and the slider's own floor, spending a frame per
+       pointer move on the gesture the app is built around, for nothing. */
+    if(!parOn){
+      tx = (ptrX / vw - .5) * 2;
+      ty = (ptrY / vh - .5) * 2;
+      cx = tx; cy = ty;
+      return;
+    }
     if(ptrPending) return;
     ptrPending = true;
     requestAnimationFrame(function(){
