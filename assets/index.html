@@ -1393,6 +1393,22 @@ window.LiquidBack=closeTopSheet;
     items=items.filter(function(x){return x.id!==id});
     persist();moveCard(it);syncAll();refocus(page,was,0,idx);
   });
+  /* a key held down on one of a card's buttons acts once, not once per repeat. The button that
+     had the focus goes out of the document with the card it acted on, and refocus() hands the
+     focus to the card that took its place — that is what it is for, and it is what made a held
+     key dangerous: the browser fires a button's activation on every repeat of a held Enter, so
+     the second press landed on the next card's button, the third on the one after it, and one
+     long press on Delete walked down the list and removed every reminder in it. Five reminders,
+     one held key, an empty list and no undo. A repeat that lands on a card's own button is
+     swallowed here; the first press still acts, and so does every deliberate press after it,
+     because each of those is a keydown that is not a repeat. Nothing about the buttons, the
+     focus hand-back, the tab order or the words on screen changes, and a WebView without
+     KeyboardEvent.repeat simply behaves as it did before. */
+  document.addEventListener("keydown",function(e){
+    if(e.key!=="Enter"||!e.repeat)return;
+    var t=e.target;
+    if(t&&t.closest&&t.closest("[data-a]"))e.preventDefault();
+  });
 
   /* ---- add sheet ---- */
   var sheet=$("#sheet"),scrim=$("#scrim"),ft=$("#f-title"),save=$("#save");
