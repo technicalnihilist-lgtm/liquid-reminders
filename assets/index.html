@@ -931,6 +931,13 @@ window.LiquidBack=closeTopSheet;
   }
   var $=function(s){return document.querySelector(s)};
   var pages=$("#pages"), tabs=$("#tabs"), TITLES=["Today","Upcoming","All","Done"];
+  /* the four pages and the two header readouts were looked up by selector on every action: a
+     toggle cost eleven querySelector calls, four of them for the pages in boardMaps(), four
+     more for the same four pages in placeEverywhere(), two for the readouts in counts() — and a
+     burst of due reminders paid the eight page lookups again for every card it placed. None of
+     these elements is ever replaced; only their children change. They are found once here, at
+     load, and the paths that run on every toggle, delete and add use the reference. */
+  var PAGE=[$("#p0"),$("#p1"),$("#p2"),$("#p3")], N0=$("#n0"), SUB=$("#sub"), HEAD=$("#title");
   function pad(n){return n<10?"0"+n:n}
   function localInput(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"T"+pad(d.getHours())+":"+pad(d.getMinutes())}
   /* the last millisecond of the local day. Pinning 23:59:59.999 onto today with setHours() is
@@ -1099,13 +1106,13 @@ window.LiquidBack=closeTopSheet;
     return {pages:[today,later,all,done], open:open.length};
   }
   function counts(b){
-    var n=b.pages[0].length; $("#n0").textContent=n?n:"";
-    $("#sub").textContent=(DF?DF.longDay.format(new Date()):new Date().toLocaleDateString([],{weekday:"long",month:"long",day:"numeric"}))+(b.open?" · "+b.open+" to do":"");
+    var n=b.pages[0].length; N0.textContent=n?n:"";
+    SUB.textContent=(DF?DF.longDay.format(new Date()):new Date().toLocaleDateString([],{weekday:"long",month:"long",day:"numeric"}))+(b.open?" · "+b.open+" to do":"");
   }
   function render(){
     var b=board(), lists=b.pages, td=todayMark();
     lists.forEach(function(l,i){
-      var page=$("#p"+i), frag=document.createDocumentFragment();
+      var page=PAGE[i], frag=document.createDocumentFragment();
       if(l.length){ l.forEach(function(it){ frag.appendChild(card(it, td)) }) }
       else frag.appendChild(emptyEl(i));
       page.textContent=""; page.appendChild(frag);
@@ -1206,11 +1213,11 @@ window.LiquidBack=closeTopSheet;
   /* the position and card maps for all four pages, read once for a whole move */
   function boardMaps(b){
     var idx=[], i;
-    for(i=0;i<4;i++) idx.push(pageIndex(b.pages[i],$("#p"+i)));
+    for(i=0;i<4;i++) idx.push(pageIndex(b.pages[i],PAGE[i]));
     return idx;
   }
   function placeEverywhere(it,idx){
-    for(var i=0;i<4;i++) placeOnPage($("#p"+i),i,idx[i],it);
+    for(var i=0;i<4;i++) placeOnPage(PAGE[i],i,idx[i],it);
   }
   function moveCard(it){
     moveCards([it]);
@@ -1291,7 +1298,7 @@ window.LiquidBack=closeTopSheet;
         t.classList.toggle("on",i===r);
         t.setAttribute("aria-current",i===r?"page":"false");
       });
-      $("#title").textContent=TITLES[r];
+      HEAD.textContent=TITLES[r];
       if(restored)saveTab(r);
       /* the tab order is a function of the settled section and of nothing else, so it is
          written here, where that section is known to have changed, instead of on every frame
