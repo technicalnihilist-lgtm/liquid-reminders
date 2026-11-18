@@ -958,7 +958,13 @@ window.LiquidBack=closeTopSheet;
      toLocaleTimeString and toLocaleDateString are defined as a DateTimeFormat built from exactly
      these options, so every call returns what it returned before. A WebView without Intl keeps
      the old calls. */
-  var DF=(function(){
+  /* a formatter with no timeZone option writes in the zone the page is in when it is built, and
+     holds it: a device that changes zone under a drawn board kept printing every due line in
+     the old zone, so a redraw after a flight showed the right page with the wrong clock time
+     beside it. The four shapes are built by a function rather than once at load, so the redraw
+     that follows a change of zone builds them again for the zone it is now in. Nothing else
+     calls it, so the count is the same as before on every other draw. */
+  function buildDF(){
     try{
       if(!window.Intl||!Intl.DateTimeFormat) return null;
       return {
@@ -968,7 +974,8 @@ window.LiquidBack=closeTopSheet;
         longDay:new Intl.DateTimeFormat([],{weekday:"long",month:"long",day:"numeric"})
       };
     }catch(e){ return null }
-  })();
+  }
+  var DF=buildDF();
   /* the local day every due line is measured against. "Today", "Tomorrow", "Yesterday" and the
      year on the date are all decided by comparing the reminder's day with today's, and fmt()
      worked today's out for itself on every call: a Date for now, two more Dates for the two
@@ -1677,8 +1684,29 @@ window.LiquidBack=closeTopSheet;
      partition until the next tap. The timer is re-armed from schedule(), which every save and
      every alert already calls, and it re-arms itself, so a device that slept through midnight
      catches up on the first wake after it. */
-  var dayT=0, dayKey=dayStamp();
+  var dayT=0, dayKey=dayStamp(), tzKey=tzStamp();
   function dayStamp(){var n=new Date();return n.getFullYear()+"-"+(n.getMonth()+1)+"-"+n.getDate()}
+  /* the local date is not the only thing the drawn board depends on: every due line is written
+     in the zone the device is in now, and the Today/Upcoming split is measured against this
+     zone's end of day. A phone that flies, or takes a network time update, changes the offset
+     under a page that is already drawn, and nothing redrew for it — the guard here only ever
+     compared the local date, so a change that kept the date number (a westward flight, a
+     daylight-saving step) left the board as the old zone drew it: a reminder due at 11:00 PM
+     still sat under Today with "Today," in front of it while the device now read it as 2:30 AM
+     tomorrow, which is what a fresh load in the same zone shows. The offset is watched beside
+     the date, so the same two places that catch a rollover catch this too. */
+  function tzStamp(){ return new Date().getTimezoneOffset() }
+  /* true when the day or the zone the board was drawn in is no longer the one the device is
+     in, and the two stamps are moved on so the next call answers for the new one */
+  function staleDraw(){
+    var k=dayStamp(), z=tzStamp();
+    if(k===dayKey&&z===tzKey) return false;
+    /* the formatters write in the zone they were built in, so a change of zone rebuilds them
+       before the redraw that follows uses them */
+    if(z!==tzKey) DF=buildDF();
+    dayKey=k; tzKey=z;
+    return true;
+  }
   function rearmDay(){
     if(dayT){clearTimeout(dayT);dayT=0}
     var n=new Date(), m=new Date(n.getFullYear(),n.getMonth(),n.getDate()+1,0,0,0,0);
@@ -1686,8 +1714,7 @@ window.LiquidBack=closeTopSheet;
     if(!isFinite(wait)||wait<=0) wait=60000; /* no reachable midnight: look again in a minute */
     dayT=setTimeout(function(){
       dayT=0;
-      var k=dayStamp();
-      if(k!==dayKey){ dayKey=k; render(); }
+      if(staleDraw()) render();
       schedule();
     },Math.min(wait+50,2147483647));
   }
@@ -1695,17 +1722,17 @@ window.LiquidBack=closeTopSheet;
      user can see changed while it was away: a reminder that came due is already put in its place
      by tick(), which moves that one card and reddens its due line, and the Today/Upcoming split,
      the "Today," and "Tomorrow," labels and the date under the title can only change at a local
-     midnight, which rearmDay() already watches. Every resume used to empty all four pages and
-     build a fresh card for every reminder — on a long list that is every card on every page
-     thrown away and made again each time the app is switched back to, at the exact moment the
-     user is waiting for it. The redraw now happens only when the day has rolled over while the
-     app was hidden, which is the one thing a resume cannot get from tick(). */
+     midnight or a time zone, which rearmDay() already watches. Every resume used to empty all
+     four pages and build a fresh card for every reminder — on a long list that is every card on
+     every page thrown away and made again each time the app is switched back to, at the exact
+     moment the user is waiting for it. The redraw now happens only when the day has rolled over,
+     or the zone has changed, while the app was hidden, which is the one thing a resume cannot
+     get from tick(). */
   document.addEventListener("visibilitychange",function(){
     document.documentElement.classList.toggle("paused",document.hidden);
     if(document.hidden)return;
     tick();
-    var k=dayStamp();
-    if(k!==dayKey){ dayKey=k; render(); }
+    if(staleDraw()) render();
   });
 
   /* ---- first-paint marker: one console line per load, so a run can compare before and
