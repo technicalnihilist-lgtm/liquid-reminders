@@ -1773,8 +1773,24 @@ window.LiquidBack=closeTopSheet;
       litOn(g);
     });
   });
+  /* a pointer moving across a panel crosses an element boundary every few pixels — from one tab
+     to the next, from a card's text to its check button, from a button to the icon inside it —
+     and `pointerout` fires on every one of those crossings, because the event is about the
+     element being left and says nothing about the panel. Each one took the specular highlight
+     off and armed the 420 ms fade behind it, and the next frame's `pointermove` put the
+     highlight straight back and cancelled that fade, so a finger dragged across the tab bar
+     turned the highlight off and on several times a second: an un-write and a write of `--lit`
+     on a `backdrop-filter` element — the most expensive thing on the screen to repaint — and a
+     visible dip in the highlight while the finger had not left the panel at all. The pointer
+     has left the panel only when it has entered something the panel does not contain, so that
+     is the question asked here: crossing to another element inside the same glass, or to a
+     child of the element just left, is not a departure and now does nothing. Leaving for
+     anything else — another glass, the page behind, or out of the window — takes the highlight
+     down exactly as before, and the `.lit` class and its fade still follow the same two calls. */
   document.addEventListener("pointerout",function(e){
     var g=e.target.closest&&e.target.closest(".glass");if(!g)return;
+    var to=e.relatedTarget;
+    if(to&&g.contains&&g.contains(to))return;
     g.style.removeProperty("--lit");litOff(g);
   });
 
