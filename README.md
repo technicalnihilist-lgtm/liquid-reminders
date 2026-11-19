@@ -1,10 +1,10 @@
 <div align="center">
 
+<img src="assets/icon.png" width="96" height="96" alt="Liquid-glass reminders app for Android icon">
+
+<img src="assets/banner.svg" alt="Liquid-glass reminders app for Android — HTML UI wrapped in a native shell with real alarms…">
+
 <a href="https://github.com/technicalnihilist-lgtm/liquid-reminders/stargazers"><img src="https://img.shields.io/badge/stars-0-5A31F4?style=for-the-badge&logo=github&logoColor=white" alt="stars: 0"></a>&nbsp;<a href="https://github.com/technicalnihilist-lgtm/liquid-reminders/network/members"><img src="https://img.shields.io/badge/forks-0-3FB950?style=for-the-badge" alt="forks: 0"></a>
-
-<h3>Liquid-glass reminders app for Android — HTML UI wrapped in a native shell with real alarms…</h3>
-
-<img src="https://img.shields.io/badge/HTML-5865F2?style=flat-square" alt="HTML"> <img src="https://img.shields.io/badge/Android-3B3F4A?style=flat-square" alt="Android"> <img src="https://img.shields.io/badge/Android%20App-3FB950?style=flat-square" alt="Android App"> <img src="https://img.shields.io/badge/APK-EC4899?style=flat-square" alt="APK">
 
 <a href="https://github.com/technicalnihilist-lgtm/liquid-reminders/releases/latest"><img src="https://img.shields.io/badge/DOWNLOAD-APK-6D5AE6?style=for-the-badge&logo=android&logoColor=white" alt="Download APK"></a>
 
@@ -14,15 +14,7 @@
 
 <sub>Donations aren't live yet — Paytm, UPI, PayPal and Buy&nbsp;Me&nbsp;a&nbsp;Coffee all show <b>coming soon</b>. Until then, a ⭐ star is the best support.</sub>
 
-<a href="https://github.com/technicalnihilist-lgtm/liquid-reminders/releases/latest"><img src="https://img.shields.io/badge/VERSION-build--8-6D5AE6?style=for-the-badge" alt="VERSION: build--8"></a> <img src="https://img.shields.io/badge/DOWNLOADS-315-3FB950?style=for-the-badge" alt="DOWNLOADS: 315"> <a href="https://github.com/technicalnihilist-lgtm/liquid-reminders/releases"><img src="https://img.shields.io/badge/RELEASES-GITHUB-EC4899?style=for-the-badge&logo=github&logoColor=white" alt="RELEASES: GITHUB"></a>
-
-<h4>Get it from</h4>
-
-<a href="https://github.com/technicalnihilist-lgtm/liquid-reminders/releases"><img src="https://img.shields.io/badge/GitHub-Releases-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Releases"></a> <a href="https://github.com/technicalnihilist-lgtm/liquid-reminders/archive/refs/heads/main.zip"><img src="https://img.shields.io/badge/Source-ZIP-0EA5E9?style=for-the-badge&logo=github&logoColor=white" alt="Source ZIP"></a>
-
 </div>
-
----
 
 ---
 
